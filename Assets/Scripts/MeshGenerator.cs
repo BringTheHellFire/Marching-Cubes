@@ -7,28 +7,31 @@ public class MeshGenerator : MonoBehaviour {
 
     const int threadGroupSize = 8;
 
-    [Header ("General Settings")]
-    public DensityGenerator densityGenerator;
+    [Header ("Dependancies")]
+    [SerializeField] private DensityGenerator densityGenerator;
+    [SerializeField] private ComputeShader marchingCubesComputeShader;
 
-    public bool fixedMapSize;
+    [Header("Auto Update Settings")]
+    [SerializeField] private bool autoUpdateInEditor = true;
+    [SerializeField] private bool autoUpdateInGame = true;
+
+    [Header("General Settings")]
+    [SerializeField] private Material meshMaterial;
+    [SerializeField] private bool generateColliders;
+
+    [Header("Map Size Settings")]
+    [SerializeField] private bool fixedMapSize;
     [ConditionalHide (nameof (fixedMapSize), true)]
     public Vector3Int numChunks = Vector3Int.one;
     [ConditionalHide (nameof (fixedMapSize), false)]
-    public Transform viewer;
+    [SerializeField] private Transform viewer;
     [ConditionalHide (nameof (fixedMapSize), false)]
     public float viewDistance = 30;
-
-    [Space ()]
-    public bool autoUpdateInEditor = true;
-    public bool autoUpdateInGame = true;
-    public ComputeShader shader;
-    public Material mat;
-    public bool generateColliders;
 
     [Header ("Voxel Settings")]
     public float isoLevel;
     public float boundsSize = 1;
-    public Vector3 offset = Vector3.zero;
+    public Vector3 noiseOffset = Vector3.zero;
 
     [Range (2, 100)]
     public int numPointsPerAxis = 30;
@@ -50,62 +53,235 @@ public class MeshGenerator : MonoBehaviour {
 
     bool settingsUpdated;
 
-    void Awake () {
-        if (Application.isPlaying && !fixedMapSize) {
-            InitVariableChunkStructures ();
-
-            var oldChunks = FindObjectsOfType<Chunk> ();
-            for (int i = oldChunks.Length - 1; i >= 0; i--) {
-                Destroy (oldChunks[i].gameObject);
-            }
+    private void Awake () {
+        if (Application.isPlaying && !fixedMapSize)
+        {
+            InitVariableChunkStructures();
+            DestroyOldChunks();
         }
     }
 
-    void Update () {
+    private void InitVariableChunkStructures()
+    {
+        recycleableChunks = new Queue<Chunk>();
+        chunks = new List<Chunk>();
+        existingChunks = new Dictionary<Vector3Int, Chunk>();
+    }
+
+    //TODO: Introduce object-pooling instead of destroying chunks when they aren't needed anymore
+    private static void DestroyOldChunks()
+    {
+        var oldChunks = FindObjectsOfType<Chunk>();
+        for (int i = oldChunks.Length - 1; i >= 0; i--)
+        {
+            Destroy(oldChunks[i].gameObject);
+        }
+    }
+
+    private void OnValidate()
+    {
+        settingsUpdated = true;
+    }
+
+    //TODO: see if this can be done outside of the update loop to optimize code
+    private void Update () {
         // Update endless terrain
-        if ((Application.isPlaying && !fixedMapSize)) {
-            Run ();
+        if (Application.isPlaying && !fixedMapSize) {
+            Run();
         }
 
         if (settingsUpdated) {
-            RequestMeshUpdate ();
+            RequestMeshUpdate();
             settingsUpdated = false;
         }
     }
 
     public void Run () {
         CreateBuffers ();
-
         if (fixedMapSize) {
-            InitChunks ();
-            UpdateAllChunks ();
+            InitializeChunks();
+            UpdateAllChunks();
 
         } else {
             if (Application.isPlaying) {
-                InitVisibleChunks ();
+                InitializeVisibleChunks();
+            }
+        }
+        // Release buffers immediately in editor
+        if (!Application.isPlaying) {
+            ReleaseBuffers();
+        }
+    }
+
+    private void CreateBuffers()
+    {
+        int numPoints = numPointsPerAxis * numPointsPerAxis * numPointsPerAxis;
+        int numVoxelsPerAxis = numPointsPerAxis - 1;
+        int numVoxels = numVoxelsPerAxis * numVoxelsPerAxis * numVoxelsPerAxis;
+        int maxTriangleCount = numVoxels * 5;
+
+        // Always create buffers in editor (since buffers are released immediately to prevent memory leak)
+        // Otherwise, only create if null or if size has changed
+        if (!Application.isPlaying || (pointsBuffer == null || numPoints != pointsBuffer.count))
+        {
+            if (Application.isPlaying)
+            {
+                ReleaseBuffers();
+            }
+            triangleBuffer = new ComputeBuffer(maxTriangleCount, sizeof(float) * 3 * 3, ComputeBufferType.Append);
+            pointsBuffer = new ComputeBuffer(numPoints, sizeof(float) * 4);
+            triCountBuffer = new ComputeBuffer(1, sizeof(int), ComputeBufferType.Raw);
+
+        }
+    }
+
+    //TODO: This whole thing could be optimized, removing as many for loops will help performance
+    // Create/get references to all chunks
+    private void InitializeChunks()
+    {
+        CreateChunkHolder();
+        chunks = new List<Chunk>();
+        List<Chunk> oldChunks = new List<Chunk>(FindObjectsOfType<Chunk>());
+
+        // Go through all coords and create a chunk there if one doesn't already exist
+        for (int x = 0; x < numChunks.x; x++)
+        {
+            for (int y = 0; y < numChunks.y; y++)
+            {
+                for (int z = 0; z < numChunks.z; z++)
+                {
+                    Vector3Int coord = new Vector3Int(x, y, z);
+                    bool chunkAlreadyExists = false;
+
+                    // If chunk already exists, add it to the chunks list, and remove from the old list.
+                    for (int i = 0; i < oldChunks.Count; i++)
+                    {
+                        if (oldChunks[i].coord == coord)
+                        {
+                            chunks.Add(oldChunks[i]);
+                            oldChunks.RemoveAt(i);
+                            chunkAlreadyExists = true;
+                            break;
+                        }
+                    }
+
+                    // Create new chunk
+                    if (!chunkAlreadyExists)
+                    {
+                        var newChunk = CreateChunk(coord);
+                        chunks.Add(newChunk);
+                    }
+
+                    chunks[chunks.Count - 1].SetUp(meshMaterial, generateColliders);
+                }
             }
         }
 
-        // Release buffers immediately in editor
-        if (!Application.isPlaying) {
-            ReleaseBuffers ();
-        }
-
-    }
-
-    public void RequestMeshUpdate () {
-        if ((Application.isPlaying && autoUpdateInGame) || (!Application.isPlaying && autoUpdateInEditor)) {
-            Run ();
+        // Delete all unused chunks
+        for (int i = 0; i < oldChunks.Count; i++)
+        {
+            oldChunks[i].DestroyOrDisable();
         }
     }
 
-    void InitVariableChunkStructures () {
-        recycleableChunks = new Queue<Chunk> ();
-        chunks = new List<Chunk> ();
-        existingChunks = new Dictionary<Vector3Int, Chunk> ();
+    private void CreateChunkHolder()
+    {
+        // Create/find mesh holder object for organizing chunks under in the hierarchy
+        if (chunkHolder == null)
+        {
+            if (GameObject.Find(chunkHolderName))
+            {
+                chunkHolder = GameObject.Find(chunkHolderName);
+            }
+            else
+            {
+                chunkHolder = new GameObject(chunkHolderName);
+            }
+        }
     }
 
-    void InitVisibleChunks () {
+    private Chunk CreateChunk(Vector3Int coord)
+    {
+        GameObject chunk = new GameObject($"Chunk ({coord.x}, {coord.y}, {coord.z})");
+        chunk.transform.parent = chunkHolder.transform;
+        Chunk newChunk = chunk.AddComponent<Chunk>();
+        newChunk.coord = coord;
+        return newChunk;
+    }
+
+    public void UpdateAllChunks()
+    {
+        // Create mesh for each chunk
+        foreach (Chunk chunk in chunks)
+        {
+            UpdateChunkMesh(chunk);
+        }
+    }
+
+    public void UpdateChunkMesh(Chunk chunk)
+    {
+        int numVoxelsPerAxis = numPointsPerAxis - 1;
+        int numThreadsPerAxis = Mathf.CeilToInt(numVoxelsPerAxis / (float)threadGroupSize);
+        float pointSpacing = boundsSize / (numPointsPerAxis - 1);
+
+        Vector3Int coord = chunk.coord;
+        Vector3 centre = CentreFromCoord(coord);
+
+        Vector3 worldBounds = new Vector3(numChunks.x, numChunks.y, numChunks.z) * boundsSize;
+
+        densityGenerator.Generate(pointsBuffer, numPointsPerAxis, boundsSize, worldBounds, centre, noiseOffset, pointSpacing);
+
+        triangleBuffer.SetCounterValue(0);
+        marchingCubesComputeShader.SetBuffer(0, "points", pointsBuffer);
+        marchingCubesComputeShader.SetBuffer(0, "triangles", triangleBuffer);
+        marchingCubesComputeShader.SetInt("numPointsPerAxis", numPointsPerAxis);
+        marchingCubesComputeShader.SetFloat("isoLevel", isoLevel);
+
+        marchingCubesComputeShader.Dispatch(0, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
+
+        // Get number of triangles in the triangle buffer
+        ComputeBuffer.CopyCount(triangleBuffer, triCountBuffer, 0);
+        int[] triCountArray = { 0 };
+        triCountBuffer.GetData(triCountArray);
+        int numTris = triCountArray[0];
+
+        // Get triangle data from shader
+        Triangle[] tris = new Triangle[numTris];
+        triangleBuffer.GetData(tris, 0, 0, numTris);
+
+        Mesh mesh = chunk.mesh;
+        mesh.Clear();
+
+        var vertices = new Vector3[numTris * 3];
+        var meshTriangles = new int[numTris * 3];
+
+        for (int i = 0; i < numTris; i++)
+        {
+            for (int j = 0; j < 3; j++)
+            {
+                meshTriangles[i * 3 + j] = i * 3 + j;
+                vertices[i * 3 + j] = tris[i][j];
+            }
+        }
+        mesh.vertices = vertices;
+        mesh.triangles = meshTriangles;
+
+        mesh.RecalculateNormals();
+    }
+
+    Vector3 CentreFromCoord(Vector3Int coord)
+    {
+        // Centre entire map at origin
+        if (fixedMapSize)
+        {
+            Vector3 totalBounds = (Vector3)numChunks * boundsSize;
+            return -totalBounds / 2 + (Vector3)coord * boundsSize + Vector3.one * boundsSize / 2;
+        }
+
+        return new Vector3(coord.x, coord.y, coord.z) * boundsSize;
+    }
+
+    private void InitializeVisibleChunks () {
         if (chunks==null) {
             return;
         }
@@ -160,7 +336,7 @@ public class MeshGenerator : MonoBehaviour {
                             } else {
                                 Chunk chunk = CreateChunk (coord);
                                 chunk.coord = coord;
-                                chunk.SetUp (mat, generateColliders);
+                                chunk.SetUp (meshMaterial, generateColliders);
                                 existingChunks.Add (coord, chunk);
                                 chunks.Add (chunk);
                                 UpdateChunkMesh (chunk);
@@ -173,66 +349,28 @@ public class MeshGenerator : MonoBehaviour {
         }
     }
 
+    void ReleaseBuffers()
+    {
+        if (triangleBuffer != null)
+        {
+            triangleBuffer.Release();
+            pointsBuffer.Release();
+            triCountBuffer.Release();
+        }
+    }
+
+    //TODO: Does this have to have such a silly check?
+    public void RequestMeshUpdate()
+    {
+        if ((Application.isPlaying && autoUpdateInGame) || (!Application.isPlaying && autoUpdateInEditor))
+        {
+            Run();
+        }
+    }
+
     public bool IsVisibleFrom (Bounds bounds, Camera camera) {
         Plane[] planes = GeometryUtility.CalculateFrustumPlanes (camera);
         return GeometryUtility.TestPlanesAABB (planes, bounds);
-    }
-
-    public void UpdateChunkMesh (Chunk chunk) {
-        int numVoxelsPerAxis = numPointsPerAxis - 1;
-        int numThreadsPerAxis = Mathf.CeilToInt (numVoxelsPerAxis / (float) threadGroupSize);
-        float pointSpacing = boundsSize / (numPointsPerAxis - 1);
-
-        Vector3Int coord = chunk.coord;
-        Vector3 centre = CentreFromCoord (coord);
-
-        Vector3 worldBounds = new Vector3 (numChunks.x, numChunks.y, numChunks.z) * boundsSize;
-
-        densityGenerator.Generate (pointsBuffer, numPointsPerAxis, boundsSize, worldBounds, centre, offset, pointSpacing);
-
-        triangleBuffer.SetCounterValue (0);
-        shader.SetBuffer (0, "points", pointsBuffer);
-        shader.SetBuffer (0, "triangles", triangleBuffer);
-        shader.SetInt ("numPointsPerAxis", numPointsPerAxis);
-        shader.SetFloat ("isoLevel", isoLevel);
-
-        shader.Dispatch (0, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
-
-        // Get number of triangles in the triangle buffer
-        ComputeBuffer.CopyCount (triangleBuffer, triCountBuffer, 0);
-        int[] triCountArray = { 0 };
-        triCountBuffer.GetData (triCountArray);
-        int numTris = triCountArray[0];
-
-        // Get triangle data from shader
-        Triangle[] tris = new Triangle[numTris];
-        triangleBuffer.GetData (tris, 0, 0, numTris);
-
-        Mesh mesh = chunk.mesh;
-        mesh.Clear ();
-
-        var vertices = new Vector3[numTris * 3];
-        var meshTriangles = new int[numTris * 3];
-
-        for (int i = 0; i < numTris; i++) {
-            for (int j = 0; j < 3; j++) {
-                meshTriangles[i * 3 + j] = i * 3 + j;
-                vertices[i * 3 + j] = tris[i][j];
-            }
-        }
-        mesh.vertices = vertices;
-        mesh.triangles = meshTriangles;
-
-        mesh.RecalculateNormals ();
-    }
-
-    public void UpdateAllChunks () {
-
-        // Create mesh for each chunk
-        foreach (Chunk chunk in chunks) {
-            UpdateChunkMesh (chunk);
-        }
-
     }
 
     void OnDestroy () {
@@ -241,125 +379,7 @@ public class MeshGenerator : MonoBehaviour {
         }
     }
 
-    void CreateBuffers () {
-        int numPoints = numPointsPerAxis * numPointsPerAxis * numPointsPerAxis;
-        int numVoxelsPerAxis = numPointsPerAxis - 1;
-        int numVoxels = numVoxelsPerAxis * numVoxelsPerAxis * numVoxelsPerAxis;
-        int maxTriangleCount = numVoxels * 5;
-
-        // Always create buffers in editor (since buffers are released immediately to prevent memory leak)
-        // Otherwise, only create if null or if size has changed
-        if (!Application.isPlaying || (pointsBuffer == null || numPoints != pointsBuffer.count)) {
-            if (Application.isPlaying) {
-                ReleaseBuffers ();
-            }
-            triangleBuffer = new ComputeBuffer (maxTriangleCount, sizeof (float) * 3 * 3, ComputeBufferType.Append);
-            pointsBuffer = new ComputeBuffer (numPoints, sizeof (float) * 4);
-            triCountBuffer = new ComputeBuffer (1, sizeof (int), ComputeBufferType.Raw);
-
-        }
-    }
-
-    void ReleaseBuffers () {
-        if (triangleBuffer != null) {
-            triangleBuffer.Release ();
-            pointsBuffer.Release ();
-            triCountBuffer.Release ();
-        }
-    }
-
-    Vector3 CentreFromCoord (Vector3Int coord) {
-        // Centre entire map at origin
-        if (fixedMapSize) {
-            Vector3 totalBounds = (Vector3) numChunks * boundsSize;
-            return -totalBounds / 2 + (Vector3) coord * boundsSize + Vector3.one * boundsSize / 2;
-        }
-
-        return new Vector3 (coord.x, coord.y, coord.z) * boundsSize;
-    }
-
-    void CreateChunkHolder () {
-        // Create/find mesh holder object for organizing chunks under in the hierarchy
-        if (chunkHolder == null) {
-            if (GameObject.Find (chunkHolderName)) {
-                chunkHolder = GameObject.Find (chunkHolderName);
-            } else {
-                chunkHolder = new GameObject (chunkHolderName);
-            }
-        }
-    }
-
-    // Create/get references to all chunks
-    void InitChunks () {
-        CreateChunkHolder ();
-        chunks = new List<Chunk> ();
-        List<Chunk> oldChunks = new List<Chunk> (FindObjectsOfType<Chunk> ());
-
-        // Go through all coords and create a chunk there if one doesn't already exist
-        for (int x = 0; x < numChunks.x; x++) {
-            for (int y = 0; y < numChunks.y; y++) {
-                for (int z = 0; z < numChunks.z; z++) {
-                    Vector3Int coord = new Vector3Int (x, y, z);
-                    bool chunkAlreadyExists = false;
-
-                    // If chunk already exists, add it to the chunks list, and remove from the old list.
-                    for (int i = 0; i < oldChunks.Count; i++) {
-                        if (oldChunks[i].coord == coord) {
-                            chunks.Add (oldChunks[i]);
-                            oldChunks.RemoveAt (i);
-                            chunkAlreadyExists = true;
-                            break;
-                        }
-                    }
-
-                    // Create new chunk
-                    if (!chunkAlreadyExists) {
-                        var newChunk = CreateChunk (coord);
-                        chunks.Add (newChunk);
-                    }
-
-                    chunks[chunks.Count - 1].SetUp (mat, generateColliders);
-                }
-            }
-        }
-
-        // Delete all unused chunks
-        for (int i = 0; i < oldChunks.Count; i++) {
-            oldChunks[i].DestroyOrDisable ();
-        }
-    }
-
-    Chunk CreateChunk (Vector3Int coord) {
-        GameObject chunk = new GameObject ($"Chunk ({coord.x}, {coord.y}, {coord.z})");
-        chunk.transform.parent = chunkHolder.transform;
-        Chunk newChunk = chunk.AddComponent<Chunk> ();
-        newChunk.coord = coord;
-        return newChunk;
-    }
-
-    void OnValidate() {
-        settingsUpdated = true;
-    }
-
-    struct Triangle {
-#pragma warning disable 649 // disable unassigned variable warning
-        public Vector3 a;
-        public Vector3 b;
-        public Vector3 c;
-
-        public Vector3 this [int i] {
-            get {
-                switch (i) {
-                    case 0:
-                        return a;
-                    case 1:
-                        return b;
-                    default:
-                        return c;
-                }
-            }
-        }
-    }
+    
 
     void OnDrawGizmos () {
         if (showBoundsGizmo) {
@@ -374,4 +394,28 @@ public class MeshGenerator : MonoBehaviour {
         }
     }
 
+}
+
+public struct Triangle
+{
+#pragma warning disable 649 // disable unassigned variable warning
+    public Vector3 a;
+    public Vector3 b;
+    public Vector3 c;
+
+    public Vector3 this[int i]
+    {
+        get
+        {
+            switch (i)
+            {
+                case 0:
+                    return a;
+                case 1:
+                    return b;
+                default:
+                    return c;
+            }
+        }
+    }
 }
