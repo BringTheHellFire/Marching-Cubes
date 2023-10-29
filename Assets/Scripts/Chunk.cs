@@ -8,10 +8,10 @@ public class Chunk : MonoBehaviour {
     [HideInInspector]
     public Mesh mesh;
 
-    MeshFilter meshFilter;
-    MeshRenderer meshRenderer;
-    MeshCollider meshCollider;
-    bool generateCollider;
+    private MeshFilter meshFilter;
+    private MeshRenderer meshRenderer;
+    private MeshCollider meshCollider;
+    private bool generateCollider = false;
 
     public void DestroyOrDisable () {
         if (Application.isPlaying) {

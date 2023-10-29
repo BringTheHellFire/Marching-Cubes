@@ -42,9 +42,9 @@ public class MeshGenerator : MonoBehaviour {
 
     GameObject chunkHolder;
     const string chunkHolderName = "Chunks Holder";
-    List<Chunk> chunks;
-    Dictionary<Vector3Int, Chunk> existingChunks;
-    Queue<Chunk> recycleableChunks;
+    List<Chunk> chunks = new();
+    Dictionary<Vector3Int, Chunk> existingChunks = new();
+    Queue<Chunk> recycleableChunks = new();
 
     // Buffers
     ComputeBuffer triangleBuffer;
@@ -56,25 +56,16 @@ public class MeshGenerator : MonoBehaviour {
     private void Awake () {
         if (Application.isPlaying && !fixedMapSize)
         {
-            InitVariableChunkStructures();
             DestroyOldChunks();
         }
-    }
-
-    private void InitVariableChunkStructures()
-    {
-        recycleableChunks = new Queue<Chunk>();
-        chunks = new List<Chunk>();
-        existingChunks = new Dictionary<Vector3Int, Chunk>();
     }
 
     //TODO: Introduce object-pooling instead of destroying chunks when they aren't needed anymore
     private static void DestroyOldChunks()
     {
-        var oldChunks = FindObjectsOfType<Chunk>();
-        for (int i = oldChunks.Length - 1; i >= 0; i--)
+        foreach (var chunk in FindObjectsOfType<Chunk>())
         {
-            Destroy(oldChunks[i].gameObject);
+            Destroy(chunk.gameObject);
         }
     }
 
@@ -102,12 +93,10 @@ public class MeshGenerator : MonoBehaviour {
             InitializeChunks();
             UpdateAllChunks();
 
-        } else {
-            if (Application.isPlaying) {
+        } else if (Application.isPlaying) {
                 InitializeVisibleChunks();
-            }
         }
-        // Release buffers immediately in editor
+
         if (!Application.isPlaying) {
             ReleaseBuffers();
         }
@@ -131,7 +120,6 @@ public class MeshGenerator : MonoBehaviour {
             triangleBuffer = new ComputeBuffer(maxTriangleCount, sizeof(float) * 3 * 3, ComputeBufferType.Append);
             pointsBuffer = new ComputeBuffer(numPoints, sizeof(float) * 4);
             triCountBuffer = new ComputeBuffer(1, sizeof(int), ComputeBufferType.Raw);
-
         }
     }
 
@@ -202,16 +190,14 @@ public class MeshGenerator : MonoBehaviour {
 
     private Chunk CreateChunk(Vector3Int coord)
     {
-        GameObject chunk = new GameObject($"Chunk ({coord.x}, {coord.y}, {coord.z})");
+        var chunk = new GameObject($"Chunk {coord}").AddComponent<Chunk>();
         chunk.transform.parent = chunkHolder.transform;
-        Chunk newChunk = chunk.AddComponent<Chunk>();
-        newChunk.coord = coord;
-        return newChunk;
+        chunk.coord = coord;
+        return chunk;
     }
 
     public void UpdateAllChunks()
     {
-        // Create mesh for each chunk
         foreach (Chunk chunk in chunks)
         {
             UpdateChunkMesh(chunk);
@@ -269,7 +255,7 @@ public class MeshGenerator : MonoBehaviour {
         mesh.RecalculateNormals();
     }
 
-    Vector3 CentreFromCoord(Vector3Int coord)
+    private Vector3 CentreFromCoord(Vector3Int coord)
     {
         // Centre entire map at origin
         if (fixedMapSize)
@@ -379,16 +365,12 @@ public class MeshGenerator : MonoBehaviour {
         }
     }
 
-    
-
     void OnDrawGizmos () {
         if (showBoundsGizmo) {
             Gizmos.color = boundsGizmoCol;
 
             List<Chunk> chunks = (this.chunks == null) ? new List<Chunk> (FindObjectsOfType<Chunk> ()) : this.chunks;
             foreach (var chunk in chunks) {
-                Bounds bounds = new Bounds (CentreFromCoord (chunk.coord), Vector3.one * boundsSize);
-                Gizmos.color = boundsGizmoCol;
                 Gizmos.DrawWireCube (CentreFromCoord (chunk.coord), Vector3.one * boundsSize);
             }
         }
