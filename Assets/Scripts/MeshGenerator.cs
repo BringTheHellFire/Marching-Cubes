@@ -73,6 +73,7 @@ public class MeshGenerator : MonoBehaviour {
 
     //TODO: see if this can be done outside of the update loop to optimize code
     private void Update () {
+
         // Update endless terrain
         if (Application.isPlaying && !fixedMapSize) {
             Run();
@@ -171,10 +172,11 @@ public class MeshGenerator : MonoBehaviour {
 
     private Chunk CreateChunk(Vector3Int coord)
     {
-        var chunk = new GameObject($"Chunk {coord}").AddComponent<Chunk>();
+        GameObject chunk = new GameObject($"Chunk ({coord.x}, {coord.y}, {coord.z})");
         chunk.transform.parent = chunkHolder.transform;
-        chunk.coord = coord;
-        return chunk;
+        Chunk newChunk = chunk.AddComponent<Chunk>();
+        newChunk.coord = coord;
+        return newChunk;
     }
 
     public void UpdateAllChunks()
