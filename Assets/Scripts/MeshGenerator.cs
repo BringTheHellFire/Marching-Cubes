@@ -46,12 +46,9 @@ public class MeshGenerator : MonoBehaviour {
     Dictionary<Vector3Int, Chunk> existingChunks = new();
     Queue<Chunk> recycleableChunks = new();
 
-    // Buffers
-    ComputeBuffer triangleBuffer;
-    ComputeBuffer pointsBuffer;
-    ComputeBuffer triCountBuffer;
-
     bool settingsUpdated;
+
+    private BufferManager bufferManager = new();
 
     private void Awake () {
         if (Application.isPlaying && !fixedMapSize)
@@ -104,23 +101,7 @@ public class MeshGenerator : MonoBehaviour {
 
     private void CreateBuffers()
     {
-        int numPoints = numPointsPerAxis * numPointsPerAxis * numPointsPerAxis;
-        int numVoxelsPerAxis = numPointsPerAxis - 1;
-        int numVoxels = numVoxelsPerAxis * numVoxelsPerAxis * numVoxelsPerAxis;
-        int maxTriangleCount = numVoxels * 5;
-
-        // Always create buffers in editor (since buffers are released immediately to prevent memory leak)
-        // Otherwise, only create if null or if size has changed
-        if (!Application.isPlaying || (pointsBuffer == null || numPoints != pointsBuffer.count))
-        {
-            if (Application.isPlaying)
-            {
-                ReleaseBuffers();
-            }
-            triangleBuffer = new ComputeBuffer(maxTriangleCount, sizeof(float) * 3 * 3, ComputeBufferType.Append);
-            pointsBuffer = new ComputeBuffer(numPoints, sizeof(float) * 4);
-            triCountBuffer = new ComputeBuffer(1, sizeof(int), ComputeBufferType.Raw);
-        }
+        bufferManager.CreateBuffers(numPointsPerAxis);
     }
 
     //TODO: This whole thing could be optimized, removing as many for loops will help performance
@@ -215,25 +196,25 @@ public class MeshGenerator : MonoBehaviour {
 
         Vector3 worldBounds = new Vector3(numChunks.x, numChunks.y, numChunks.z) * boundsSize;
 
-        densityGenerator.Generate(pointsBuffer, numPointsPerAxis, boundsSize, worldBounds, centre, noiseOffset, pointSpacing);
+        densityGenerator.Generate(bufferManager.PointsBuffer, numPointsPerAxis, boundsSize, worldBounds, centre, noiseOffset, pointSpacing);
 
-        triangleBuffer.SetCounterValue(0);
-        marchingCubesComputeShader.SetBuffer(0, "points", pointsBuffer);
-        marchingCubesComputeShader.SetBuffer(0, "triangles", triangleBuffer);
+        bufferManager.TriangleBuffer.SetCounterValue(0);
+        marchingCubesComputeShader.SetBuffer(0, "points", bufferManager.PointsBuffer);
+        marchingCubesComputeShader.SetBuffer(0, "triangles", bufferManager.TriangleBuffer);
         marchingCubesComputeShader.SetInt("numPointsPerAxis", numPointsPerAxis);
         marchingCubesComputeShader.SetFloat("isoLevel", isoLevel);
 
         marchingCubesComputeShader.Dispatch(0, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
 
         // Get number of triangles in the triangle buffer
-        ComputeBuffer.CopyCount(triangleBuffer, triCountBuffer, 0);
+        ComputeBuffer.CopyCount(bufferManager.TriangleBuffer, bufferManager.TriCountBuffer, 0);
         int[] triCountArray = { 0 };
-        triCountBuffer.GetData(triCountArray);
+        bufferManager.TriCountBuffer.GetData(triCountArray);
         int numTris = triCountArray[0];
 
         // Get triangle data from shader
         Triangle[] tris = new Triangle[numTris];
-        triangleBuffer.GetData(tris, 0, 0, numTris);
+        bufferManager.TriangleBuffer.GetData(tris, 0, 0, numTris);
 
         Mesh mesh = chunk.mesh;
         mesh.Clear();
@@ -337,12 +318,7 @@ public class MeshGenerator : MonoBehaviour {
 
     void ReleaseBuffers()
     {
-        if (triangleBuffer != null)
-        {
-            triangleBuffer.Release();
-            pointsBuffer.Release();
-            triCountBuffer.Release();
-        }
+        bufferManager.ReleaseBuffers();
     }
 
     //TODO: Does this have to have such a silly check?
