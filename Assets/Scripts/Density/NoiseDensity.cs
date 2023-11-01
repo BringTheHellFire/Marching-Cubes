@@ -8,6 +8,11 @@ public class NoiseDensity : DensityGenerator
 
     public Vector4 shaderParams;
 
+    public float interpolationSpeed = 0.1f; // Control the speed of interpolation.
+    private NoiseSettings currentNoiseSettings;
+    private NoiseSettings targetNoiseSettings;
+    private float interpolationTime;
+
     public override ComputeBuffer Generate(ComputeBuffer pointsBuffer, int numPointsPerAxis, float boundsSize, Vector3 worldBounds, Vector3 centre, Vector3 offset, float spacing)
     {
         buffersToRelease = new List<ComputeBuffer>();
