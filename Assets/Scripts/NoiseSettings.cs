@@ -20,27 +20,21 @@ public class NoiseSettings
     [Header("Randomized Properties")]
     [Tooltip("This scales the noise value, effectively zooming in or out on the noise pattern.")]
     public float noiseScale = 1;
-    public PropertyRange noiseScaleRandomizationRange;
     [Space(2)]
     [Tooltip("This weights the noise value, allowing for a heavier or lighter influence of the noise on the overall density.")]
     public float noiseWeight = 1;
-    public PropertyRange noiseWeightRandomizationRange;
     [Space(2)]
     [Tooltip("Used to raise or lower the base height of the noise, effectively acting as a vertical offset.")]
     public float floorOffset = 1;
-    public PropertyRange floorOffsetRandomizationRange;
     [Space(2)]
     [Tooltip("Weight multiplier for the floor.")]
     public float weightMultiplier = 1;
-    public PropertyRange weightMultiplierRandomizationRange;
     [Space(2)]
     [Tooltip("At what height (or depth) the density is adjusted more sharply, creating a 'hard' floor.")]
     public float hardFloorHeight;
-    public PropertyRange hardFloorHeightRandomizationRange;
     [Space(2)]
     [Tooltip("Specifies how 'hard' or strong the effect of the hard floor is on the density.")]
     public float hardFloorWeight;
-    public PropertyRange hardFloorWeightRandomizationRange;
 
     public static NoiseSettings Lerp(NoiseSettings a, NoiseSettings b, float t)
     {
@@ -59,7 +53,7 @@ public class NoiseSettings
         return result;
     }
 
-    public static NoiseSettings GenerateRandomSettings()
+    public static NoiseSettings GenerateRandomSettings(NoiseSettingsRangeData noiseSettingsData)
     {
         NoiseSettings randomSettings = new NoiseSettings();
 
@@ -68,22 +62,15 @@ public class NoiseSettings
         randomSettings.numOctaves = 8;
         randomSettings.lacunarity = 2f;
         randomSettings.persistence = 0.54f;
-        randomSettings.noiseScale = Random.Range(0.5f, 5f);
-        randomSettings.noiseWeight = Random.Range(0.1f, 7f);
-        randomSettings.floorOffset = Random.Range(0.5f, 1.5f);
-        randomSettings.weightMultiplier = Random.Range(0.8f, 1.2f);
-        randomSettings.hardFloorHeight = Random.Range(-5f, 10f);
-        randomSettings.hardFloorWeight = Random.Range(0.5f, 10f);
+        randomSettings.noiseScale = Random.Range(noiseSettingsData.NoiseScaleRandomizationRange.minValue, noiseSettingsData.NoiseScaleRandomizationRange.maxValue);
+        randomSettings.noiseWeight = Random.Range(noiseSettingsData.NoiseWeightRandomizationRange.minValue, noiseSettingsData.NoiseWeightRandomizationRange.maxValue);
+        randomSettings.floorOffset = Random.Range(noiseSettingsData.FloorOffsetRandomizationRange.minValue, noiseSettingsData.FloorOffsetRandomizationRange.maxValue);
+        randomSettings.weightMultiplier = Random.Range(noiseSettingsData.WeightMultiplierRandomizationRange.minValue, noiseSettingsData.WeightMultiplierRandomizationRange.maxValue);
+        randomSettings.hardFloorHeight = Random.Range(noiseSettingsData.HardFloorHeightRandomizationRange.minValue, noiseSettingsData.HardFloorHeightRandomizationRange.maxValue);
+        randomSettings.hardFloorWeight = Random.Range(noiseSettingsData.HardFloorWeightRandomizationRange.minValue, noiseSettingsData.HardFloorWeightRandomizationRange.maxValue);
 
         return randomSettings;
     }
-}
-
-[System.Serializable]
-public struct PropertyRange
-{
-    public float minValue;
-    public float maxValue;
 }
 
 

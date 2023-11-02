@@ -49,6 +49,8 @@ public class MeshGenerator : MonoBehaviour {
 
     private BufferManager bufferManager = new();
 
+    [SerializeField] private NoiseSettingsRangeData noiseSettingsData;
+
     private NoiseSettings currentNoiseSettings;
     private NoiseSettings targetNoiseSettings;
     private float transitionDuration = 5f;
@@ -112,8 +114,8 @@ public class MeshGenerator : MonoBehaviour {
                     }
                 }else if (!isTransitioning)
                 {
-                    targetNoiseSettings = NoiseSettings.GenerateRandomSettings();
-                    targetIsoLevel = Random.Range(0f, 25f);
+                    targetNoiseSettings = NoiseSettings.GenerateRandomSettings(noiseSettingsData);
+                    targetIsoLevel = Random.Range(0f, 20f);
                     transitionTimer = 0.0f;
                     isTransitioning = true;
                 }
