@@ -51,9 +51,11 @@ public class MeshGenerator : MonoBehaviour {
 
     private NoiseSettings currentNoiseSettings;
     private NoiseSettings targetNoiseSettings;
-    private float transitionDuration = 5f; // Duration of the transition in seconds
+    private float transitionDuration = 5f;
     private float transitionTimer = 0.0f;
-    private bool isTransitioning = false; // Track if a transition is in progress
+    private bool isTransitioning = false;
+
+    private float targetIsoLevel;
 
 
     private void Awake () {
@@ -93,26 +95,27 @@ public class MeshGenerator : MonoBehaviour {
                 currentNoiseSettings = noiseDensityComponent.noiseSettings;
                 if (isTransitioning)
                 {
-                    // Check if a transition is in progress.
                     if (transitionTimer < transitionDuration)
                     {
                         float t = transitionTimer / transitionDuration;
+                        float lerpedIsoLevel = Mathf.Lerp(isoLevel, targetIsoLevel, t);
+                        isoLevel = lerpedIsoLevel;
                         noiseDensityComponent.noiseSettings = NoiseSettings.Lerp(currentNoiseSettings, targetNoiseSettings, t);
                         RequestMeshUpdate();
-                        // Increment the transition timer.
                         transitionTimer += Time.deltaTime;
                     }
                     else
                     {
-                        // Transition completed, update the current settings.
                         currentNoiseSettings = targetNoiseSettings;
-                        isTransitioning = false; // Transition is finished
+                        isoLevel = targetIsoLevel;
+                        isTransitioning = false;
                     }
                 }else if (!isTransitioning)
                 {
                     targetNoiseSettings = NoiseSettings.GenerateRandomSettings();
-                    transitionTimer = 0.0f; // Reset the transition timer to start the transition.
-                    isTransitioning = true; // Mark that a transition is in progress
+                    targetIsoLevel = Random.Range(0f, 25f);
+                    transitionTimer = 0.0f;
+                    isTransitioning = true;
                 }
             }
         }
