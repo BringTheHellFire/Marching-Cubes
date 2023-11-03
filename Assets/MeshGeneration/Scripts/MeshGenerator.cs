@@ -24,17 +24,12 @@ public class MeshGenerator : MonoBehaviour {
 
     [Header("Map Size Settings")]
     [SerializeField] private bool fixedMapSize;
-    [ConditionalHide (nameof (fixedMapSize), true)]
-    public Vector3Int numChunks = Vector3Int.one;
-    [ConditionalHide (nameof (fixedMapSize), false)]
-    [SerializeField] private Transform viewer;
-    [ConditionalHide (nameof (fixedMapSize), false)]
-    public float viewDistance = 30;
+    [SerializeField] private Vector3Int numChunks = Vector3Int.one;
+    [SerializeField] private float boundsSize = 1;
 
-    [Header ("Voxel Settings")]
-    public float isoLevel;
-    public float boundsSize = 1;
-    public Vector3 noiseOffset = Vector3.zero;
+    [Header("Voxel Settings")]
+    [SerializeField] private float isoLevel;
+    [SerializeField] private Vector3 noiseOffset = Vector3.zero;
 
     [Range (2, 100)]
     [SerializeField] private int numPointsPerAxis = 30;
@@ -45,8 +40,6 @@ public class MeshGenerator : MonoBehaviour {
 
     private GameObject chunkHolder; 
     private List<Chunk> chunks = new();
-    private Dictionary<Vector3Int, Chunk> existingChunks = new();
-    private Queue<Chunk> recycleableChunks = new();
 
     private bool settingsUpdated;
 
@@ -58,6 +51,11 @@ public class MeshGenerator : MonoBehaviour {
     private float transitionTimer = 0.0f;
     private bool isTransitioning = false;
     private float targetIsoLevel;
+
+    public Vector3Int NumChunks { get => numChunks; set => numChunks = value; }
+    public float BoundsSize { get => boundsSize; set => boundsSize = value; }
+    public float IsoLevel { get => isoLevel; set => isoLevel = value; }
+    public Vector3 NoiseOffset { get => noiseOffset; set => noiseOffset = value; }
 
     private void Awake () {
         if (Application.isPlaying && !fixedMapSize)
@@ -108,8 +106,6 @@ public class MeshGenerator : MonoBehaviour {
         if (fixedMapSize) {
             InitializeChunks();
             UpdateAllChunks();
-        }else if (Application.isPlaying) {
-            InitializeVisibleChunks();
         }
 
         if (!Application.isPlaying) {
@@ -134,11 +130,11 @@ public class MeshGenerator : MonoBehaviour {
         chunks = new List<Chunk>();
         List<Chunk> oldChunks = new List<Chunk>(FindObjectsOfType<Chunk>());
 
-        for (int x = 0; x < numChunks.x; x++)
+        for (int x = 0; x < NumChunks.x; x++)
         {
-            for (int y = 0; y < numChunks.y; y++)
+            for (int y = 0; y < NumChunks.y; y++)
             {
-                for (int z = 0; z < numChunks.z; z++)
+                for (int z = 0; z < NumChunks.z; z++)
                 {
                     Vector3Int coord = new Vector3Int(x, y, z);
                     AddOrCreateChunk(coord, oldChunks);
@@ -221,12 +217,12 @@ public class MeshGenerator : MonoBehaviour {
     {
         int numVoxelsPerAxis = numPointsPerAxis - 1;
         int numThreadsPerAxis = Mathf.CeilToInt(numVoxelsPerAxis / (float)threadGroupSize);
-        float pointSpacing = boundsSize / numVoxelsPerAxis;
+        float pointSpacing = BoundsSize / numVoxelsPerAxis;
 
         Vector3Int coord = chunk.coord;
         Vector3 centre = CentreFromCoord(coord);
 
-        Vector3 worldBounds = new Vector3(numChunks.x, numChunks.y, numChunks.z) * boundsSize;
+        Vector3 worldBounds = new Vector3(NumChunks.x, NumChunks.y, NumChunks.z) * BoundsSize;
 
         GeneratePoints(worldBounds, centre, pointSpacing);
         ComputeMeshTriangles(numThreadsPerAxis, out Triangle[] triangles, out int numOfTriangles);
@@ -235,7 +231,7 @@ public class MeshGenerator : MonoBehaviour {
 
     private void GeneratePoints(Vector3 worldBounds, Vector3 centre, float pointSpacing)
     {
-        densityGenerator.Generate(bufferManager.PointsBuffer, numPointsPerAxis, boundsSize, worldBounds, centre, noiseOffset, pointSpacing);
+        densityGenerator.Generate(bufferManager.PointsBuffer, numPointsPerAxis, BoundsSize, worldBounds, centre, NoiseOffset, pointSpacing);
     }
 
     private void ComputeMeshTriangles(int numThreadsPerAxis, out Triangle[] triangles, out int numOfTriangles)
@@ -244,7 +240,7 @@ public class MeshGenerator : MonoBehaviour {
         marchingCubesComputeShader.SetBuffer(0, "points", bufferManager.PointsBuffer);
         marchingCubesComputeShader.SetBuffer(0, "triangles", bufferManager.TriangleBuffer);
         marchingCubesComputeShader.SetInt("numPointsPerAxis", numPointsPerAxis);
-        marchingCubesComputeShader.SetFloat("isoLevel", isoLevel);
+        marchingCubesComputeShader.SetFloat("isoLevel", IsoLevel);
 
         marchingCubesComputeShader.Dispatch(0, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
 
@@ -288,136 +284,13 @@ public class MeshGenerator : MonoBehaviour {
     {
         if (fixedMapSize)
         {
-            Vector3 totalBounds = (Vector3)numChunks * boundsSize;
-            return -totalBounds / 2 + (Vector3)coord * boundsSize + Vector3.one * boundsSize / 2;
+            Vector3 totalBounds = (Vector3)NumChunks * BoundsSize;
+            return -totalBounds / 2 + (Vector3)coord * BoundsSize + Vector3.one * BoundsSize / 2;
         }
 
-        return new Vector3(coord.x, coord.y, coord.z) * boundsSize;
+        return new Vector3(coord.x, coord.y, coord.z) * BoundsSize;
     }
     #endregion
-
-    #region Visible Chunks
-    private void InitializeVisibleChunks()
-    {
-        if (chunks == null)
-        {
-            return;
-        }
-        CreateChunkHolder();
-
-        Vector3 viewerPosition = viewer.position;
-        Vector3Int viewerCoord = GetViewerCoord(viewerPosition);
-
-        int maxChunksInView = Mathf.CeilToInt(viewDistance / boundsSize);
-        float sqrViewDistance = viewDistance * viewDistance;
-
-        RemoveChunksOutsideView(viewerPosition, sqrViewDistance);
-
-        CreateNewChunksInView(viewerCoord, maxChunksInView, sqrViewDistance);
-    }
-
-    private Vector3Int GetViewerCoord(Vector3 viewerPosition)
-    {
-        Vector3 viewerNormalizedPosition = viewerPosition / boundsSize;
-        return new Vector3Int(Mathf.RoundToInt(viewerNormalizedPosition.x), Mathf.RoundToInt(viewerNormalizedPosition.y), Mathf.RoundToInt(viewerNormalizedPosition.z));
-    }
-
-    private void RemoveChunksOutsideView(Vector3 viewerPosition, float sqrViewDistance)
-    {
-        for (int i = chunks.Count - 1; i >= 0; i--)
-        {
-            Chunk chunk = chunks[i];
-            if (IsChunkOutsideView(chunk, viewerPosition, sqrViewDistance))
-            {
-                RemoveChunk(chunk);
-            }
-        }
-    }
-
-    private bool IsChunkOutsideView(Chunk chunk, Vector3 viewerPosition, float sqrViewDistance)
-    {
-        Vector3 centre = CentreFromCoord(chunk.coord);
-        Vector3 viewerOffset = viewerPosition - centre;
-        Vector3 o = new Vector3(Mathf.Abs(viewerOffset.x), Mathf.Abs(viewerOffset.y), Mathf.Abs(viewerOffset.z)) - Vector3.one * boundsSize / 2;
-        float sqrDst = new Vector3(Mathf.Max(o.x, 0), Mathf.Max(o.y, 0), Mathf.Max(o.z, 0)).sqrMagnitude;
-        return sqrDst > sqrViewDistance;
-    }
-
-    private void RemoveChunk(Chunk chunk)
-    {
-        existingChunks.Remove(chunk.coord);
-        recycleableChunks.Enqueue(chunk);
-        chunks.Remove(chunk);
-    }
-
-    private void CreateNewChunksInView(Vector3Int viewerCoord, int maxChunksInView, float sqrViewDistance)
-    {
-        for (int x = -maxChunksInView; x <= maxChunksInView; x++)
-        {
-            for (int y = -maxChunksInView; y <= maxChunksInView; y++)
-            {
-                for (int z = -maxChunksInView; z <= maxChunksInView; z++)
-                {
-                    Vector3Int coord = new Vector3Int(x, y, z) + viewerCoord;
-
-                    if (existingChunks.ContainsKey(coord))
-                    {
-                        continue;
-                    }
-
-                    CreateChunkInView(coord, sqrViewDistance);
-                }
-            }
-        }
-    }
-
-    private void CreateChunkInView(Vector3Int coord, float sqrViewDistance)
-    {
-        Vector3 centre = CentreFromCoord(coord);
-        Vector3 viewerOffset = viewer.position - centre;
-        Vector3 o = new Vector3(Mathf.Abs(viewerOffset.x), Mathf.Abs(viewerOffset.y), Mathf.Abs(viewerOffset.z)) - Vector3.one * boundsSize / 2;
-        float sqrDst = new Vector3(Mathf.Max(o.x, 0), Mathf.Max(o.y, 0), Mathf.Max(o.z, 0)).sqrMagnitude;
-
-        Bounds bounds = new Bounds(CentreFromCoord(coord), Vector3.one * boundsSize);
-
-        if (sqrDst <= sqrViewDistance && IsVisibleFrom(bounds, Camera.main))
-        {
-            if (recycleableChunks.Count > 0)
-            {
-                ReuseChunk(coord);
-            }
-            else
-            {
-                CreateNewChunk(coord);
-            }
-        }
-    }
-
-    public bool IsVisibleFrom(Bounds bounds, Camera camera)
-    {
-        Plane[] planes = GeometryUtility.CalculateFrustumPlanes(camera);
-        return GeometryUtility.TestPlanesAABB(planes, bounds);
-    }
-
-    private void ReuseChunk(Vector3Int coord)
-    {
-        Chunk chunk = recycleableChunks.Dequeue();
-        chunk.coord = coord;
-        existingChunks.Add(coord, chunk);
-        chunks.Add(chunk);
-        UpdateChunkMesh(chunk);
-    }
-
-    private void CreateNewChunk(Vector3Int coord)
-    {
-        Chunk chunk = CreateChunk(coord);
-        chunk.coord = coord;
-        chunk.SetUp(meshMaterial, generateColliders);
-        existingChunks.Add(coord, chunk);
-        chunks.Add(chunk);
-        UpdateChunkMesh(chunk);
-    }
-    #endregion 
 
     #region Update Noise Settings
     private void UpdateNoiseSettings()
@@ -452,8 +325,8 @@ public class MeshGenerator : MonoBehaviour {
         if (transitionTimer < transitionDuration)
         {
             float t = transitionTimer / transitionDuration;
-            float lerpedIsoLevel = Mathf.Lerp(isoLevel, targetIsoLevel, t);
-            isoLevel = lerpedIsoLevel;
+            float lerpedIsoLevel = Mathf.Lerp(IsoLevel, targetIsoLevel, t);
+            IsoLevel = lerpedIsoLevel;
             noiseDensityComponent.NoiseSettings = NoiseSettings.Lerp(currentNoiseSettings, targetNoiseSettings, t);
             RequestMeshUpdate();
             transitionTimer += Time.deltaTime;
@@ -461,7 +334,7 @@ public class MeshGenerator : MonoBehaviour {
         else
         {
             currentNoiseSettings = targetNoiseSettings;
-            isoLevel = targetIsoLevel;
+            IsoLevel = targetIsoLevel;
             isTransitioning = false;
         }
     }
@@ -481,7 +354,7 @@ public class MeshGenerator : MonoBehaviour {
 
             List<Chunk> chunks = (this.chunks == null) ? new List<Chunk> (FindObjectsOfType<Chunk> ()) : this.chunks;
             foreach (var chunk in chunks) {
-                Gizmos.DrawWireCube (CentreFromCoord (chunk.coord), Vector3.one * boundsSize);
+                Gizmos.DrawWireCube (CentreFromCoord (chunk.coord), Vector3.one * BoundsSize);
             }
         }
     }

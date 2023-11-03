@@ -23,7 +23,7 @@ public class ColourGenerator : MonoBehaviour {
 
         MeshGenerator m = FindObjectOfType<MeshGenerator> ();
 
-        float boundsY = m.boundsSize * m.numChunks.y;
+        float boundsY = m.BoundsSize * m.NumChunks.y;
 
         mat.SetFloat ("boundsY", boundsY);
         mat.SetFloat ("normalOffsetWeight", normalOffsetWeight);

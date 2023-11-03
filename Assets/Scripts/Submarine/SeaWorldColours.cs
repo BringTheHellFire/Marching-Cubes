@@ -40,7 +40,7 @@ public class SeaWorldColours : MonoBehaviour {
         mat.SetVector("params",shaderParams);
 
         RenderSettings.fogColor = cam.backgroundColor;
-        RenderSettings.fogEndDistance = meshGenerator.viewDistance * fogDstMultiplier;
+        //RenderSettings.fogEndDistance = meshGenerator.viewDistance * fogDstMultiplier;
     }
 
     void UpdateTexture () {
