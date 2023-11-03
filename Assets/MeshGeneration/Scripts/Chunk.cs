@@ -1,27 +1,31 @@
-﻿using UnityEngine;
+﻿using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
 
-public class Chunk : MonoBehaviour 
-{
-    private Vector3Int coord;
+public class Chunk : MonoBehaviour {
+    public Vector3Int coord;
 
-    private Mesh mesh;
+    [HideInInspector]
+    public Mesh mesh;
+
     private MeshFilter meshFilter;
     private MeshRenderer meshRenderer;
     private MeshCollider meshCollider;
-
-    public Vector3Int Coord { get => coord; set => coord = value; }
-    public Mesh Mesh { get => mesh; set => mesh = value; }
+    private bool generateCollider = false;
 
     public void DestroyOrDisable () {
         if (Application.isPlaying) {
-            Mesh.Clear ();
+            mesh.Clear ();
             gameObject.SetActive (false);
         } else {
             DestroyImmediate (gameObject, false);
         }
     }
 
+    // Add components/get references in case lost (references can be lost when working in the editor)
     public void SetUp (Material mat, bool generateCollider) {
+        this.generateCollider = generateCollider;
+
         meshFilter = GetComponent<MeshFilter> ();
         meshRenderer = GetComponent<MeshRenderer> ();
         meshCollider = GetComponent<MeshCollider> ();
@@ -41,17 +45,18 @@ public class Chunk : MonoBehaviour
             DestroyImmediate (meshCollider);
         }
 
-        Mesh = meshFilter.sharedMesh;
-        if (Mesh == null) {
-            Mesh = new Mesh ();
-            Mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
-            meshFilter.sharedMesh = Mesh;
+        mesh = meshFilter.sharedMesh;
+        if (mesh == null) {
+            mesh = new Mesh ();
+            mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+            meshFilter.sharedMesh = mesh;
         }
 
         if (generateCollider) {
             if (meshCollider.sharedMesh == null) {
-                meshCollider.sharedMesh = Mesh;
+                meshCollider.sharedMesh = mesh;
             }
+            // force update
             meshCollider.enabled = false;
             meshCollider.enabled = true;
         }

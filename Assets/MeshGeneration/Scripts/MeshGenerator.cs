@@ -182,7 +182,7 @@ public class MeshGenerator : MonoBehaviour {
     {
         foreach (Chunk chunk in chunks)
         {
-            if (chunk.Coord == coord)
+            if (chunk.coord == coord)
             {
                 return chunk;
             }
@@ -195,7 +195,7 @@ public class MeshGenerator : MonoBehaviour {
         GameObject chunk = new GameObject($"Chunk ({coord.x}, {coord.y}, {coord.z})");
         chunk.transform.parent = chunkHolder.transform;
         Chunk newChunk = chunk.AddComponent<Chunk>();
-        newChunk.Coord = coord;
+        newChunk.coord = coord;
         return newChunk;
     }
 
@@ -223,7 +223,7 @@ public class MeshGenerator : MonoBehaviour {
         int numThreadsPerAxis = Mathf.CeilToInt(numVoxelsPerAxis / (float)threadGroupSize);
         float pointSpacing = boundsSize / numVoxelsPerAxis;
 
-        Vector3Int coord = chunk.Coord;
+        Vector3Int coord = chunk.coord;
         Vector3 centre = CentreFromCoord(coord);
 
         Vector3 worldBounds = new Vector3(numChunks.x, numChunks.y, numChunks.z) * boundsSize;
@@ -264,7 +264,7 @@ public class MeshGenerator : MonoBehaviour {
 
     private void CreateMeshForChunk(Chunk chunk, Triangle[] triangles, int numOfTriangles)
     {
-        Mesh mesh = chunk.Mesh;
+        Mesh mesh = chunk.mesh;
         mesh.Clear();
 
         Vector3[] vertices = new Vector3[numOfTriangles * 3];
@@ -336,7 +336,7 @@ public class MeshGenerator : MonoBehaviour {
 
     private bool IsChunkOutsideView(Chunk chunk, Vector3 viewerPosition, float sqrViewDistance)
     {
-        Vector3 centre = CentreFromCoord(chunk.Coord);
+        Vector3 centre = CentreFromCoord(chunk.coord);
         Vector3 viewerOffset = viewerPosition - centre;
         Vector3 o = new Vector3(Mathf.Abs(viewerOffset.x), Mathf.Abs(viewerOffset.y), Mathf.Abs(viewerOffset.z)) - Vector3.one * boundsSize / 2;
         float sqrDst = new Vector3(Mathf.Max(o.x, 0), Mathf.Max(o.y, 0), Mathf.Max(o.z, 0)).sqrMagnitude;
@@ -345,7 +345,7 @@ public class MeshGenerator : MonoBehaviour {
 
     private void RemoveChunk(Chunk chunk)
     {
-        existingChunks.Remove(chunk.Coord);
+        existingChunks.Remove(chunk.coord);
         recycleableChunks.Enqueue(chunk);
         chunks.Remove(chunk);
     }
@@ -402,7 +402,7 @@ public class MeshGenerator : MonoBehaviour {
     private void ReuseChunk(Vector3Int coord)
     {
         Chunk chunk = recycleableChunks.Dequeue();
-        chunk.Coord = coord;
+        chunk.coord = coord;
         existingChunks.Add(coord, chunk);
         chunks.Add(chunk);
         UpdateChunkMesh(chunk);
@@ -411,7 +411,7 @@ public class MeshGenerator : MonoBehaviour {
     private void CreateNewChunk(Vector3Int coord)
     {
         Chunk chunk = CreateChunk(coord);
-        chunk.Coord = coord;
+        chunk.coord = coord;
         chunk.SetUp(meshMaterial, generateColliders);
         existingChunks.Add(coord, chunk);
         chunks.Add(chunk);
@@ -481,7 +481,7 @@ public class MeshGenerator : MonoBehaviour {
 
             List<Chunk> chunks = (this.chunks == null) ? new List<Chunk> (FindObjectsOfType<Chunk> ()) : this.chunks;
             foreach (var chunk in chunks) {
-                Gizmos.DrawWireCube (CentreFromCoord (chunk.Coord), Vector3.one * boundsSize);
+                Gizmos.DrawWireCube (CentreFromCoord (chunk.coord), Vector3.one * boundsSize);
             }
         }
     }
