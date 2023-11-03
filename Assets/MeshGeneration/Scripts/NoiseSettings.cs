@@ -55,11 +55,11 @@ public class NoiseSettings
     {
         NoiseSettings randomSettings = new NoiseSettings();
 
-        randomSettings.seed = 1;
-        randomSettings.closeEdges = true;
-        randomSettings.numOctaves = 8;
-        randomSettings.lacunarity = 2f;
-        randomSettings.persistence = 0.54f;
+        randomSettings.seed = noiseSettingsData.Seed;
+        randomSettings.closeEdges = noiseSettingsData.CloseEdges;
+        randomSettings.numOctaves = noiseSettingsData.NumOctaves;
+        randomSettings.lacunarity = noiseSettingsData.Lacunarity;
+        randomSettings.persistence = noiseSettingsData.Persistence;
         randomSettings.noiseScale = Random.Range(noiseSettingsData.NoiseScaleRandomizationRange.minValue, noiseSettingsData.NoiseScaleRandomizationRange.maxValue);
         randomSettings.noiseWeight = Random.Range(noiseSettingsData.NoiseWeightRandomizationRange.minValue, noiseSettingsData.NoiseWeightRandomizationRange.maxValue);
         randomSettings.floorOffset = Random.Range(noiseSettingsData.FloorOffsetRandomizationRange.minValue, noiseSettingsData.FloorOffsetRandomizationRange.maxValue);
