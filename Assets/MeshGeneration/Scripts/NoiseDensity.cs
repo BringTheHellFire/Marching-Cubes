@@ -4,20 +4,22 @@ using UnityEngine;
 
 public class NoiseDensity : DensityGenerator 
 {
-    public NoiseSettings noiseSettings;
+    [SerializeField] private NoiseSettings noiseSettings;
 
-    public Vector4 shaderParams;
+    private Vector4 shaderParams = new Vector4(1f,0f,0f,0f);
+
+    public NoiseSettings NoiseSettings { get => noiseSettings; set => noiseSettings = value; }
 
     public override ComputeBuffer Generate(ComputeBuffer pointsBuffer, int numPointsPerAxis, float boundsSize, Vector3 worldBounds, Vector3 centre, Vector3 offset, float spacing)
     {
         buffersToRelease = new List<ComputeBuffer>();
 
-        Vector3[] offsets = GenerateOffsets(noiseSettings.seed, noiseSettings.numOctaves, 1000);
+        Vector3[] offsets = GenerateOffsets(NoiseSettings.seed, NoiseSettings.numOctaves, 1000);
 
         ComputeBuffer offsetsBuffer = CreateOffsetsBuffer(offsets);
         buffersToRelease.Add(offsetsBuffer);
 
-        SetDensityShaderParameters(centre, noiseSettings, shaderParams, offsetsBuffer);
+        SetDensityShaderParameters(centre, NoiseSettings, shaderParams, offsetsBuffer);
 
         return base.Generate(pointsBuffer, numPointsPerAxis, boundsSize, worldBounds, centre, offset, spacing);
     }

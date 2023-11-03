@@ -427,7 +427,7 @@ public class MeshGenerator : MonoBehaviour {
             return;
         }
 
-        currentNoiseSettings = noiseDensityComponent.noiseSettings;
+        currentNoiseSettings = noiseDensityComponent.NoiseSettings;
 
         if (isTransitioning)
         {
@@ -454,7 +454,7 @@ public class MeshGenerator : MonoBehaviour {
             float t = transitionTimer / transitionDuration;
             float lerpedIsoLevel = Mathf.Lerp(isoLevel, targetIsoLevel, t);
             isoLevel = lerpedIsoLevel;
-            noiseDensityComponent.noiseSettings = NoiseSettings.Lerp(currentNoiseSettings, targetNoiseSettings, t);
+            noiseDensityComponent.NoiseSettings = NoiseSettings.Lerp(currentNoiseSettings, targetNoiseSettings, t);
             RequestMeshUpdate();
             transitionTimer += Time.deltaTime;
         }
