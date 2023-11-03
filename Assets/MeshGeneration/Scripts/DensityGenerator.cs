@@ -10,7 +10,7 @@ public abstract class DensityGenerator : MonoBehaviour
 
     protected List<ComputeBuffer> buffersToRelease;
 
-    public ComputeShader DensityShader { get => densityShader; set => densityShader = value; }
+    public ComputeShader DensityShader { get => densityShader;}
 
     void OnValidate() {
         if (FindObjectOfType<MeshGenerator>()) {
