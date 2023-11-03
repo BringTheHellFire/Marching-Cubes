@@ -48,18 +48,18 @@ public class NoiseDensity : DensityGenerator
 
     private void SetDensityShaderParameters(Vector3 centre, NoiseSettings settings, Vector4 shaderParams, ComputeBuffer offsetsBuffer)
     {
-        densityShader.SetVector("centre", new Vector4(centre.x, centre.y, centre.z));
-        densityShader.SetInt("octaves", Mathf.Max(1, settings.numOctaves));
-        densityShader.SetFloat("lacunarity", settings.lacunarity);
-        densityShader.SetFloat("persistence", settings.persistence);
-        densityShader.SetFloat("noiseScale", settings.noiseScale);
-        densityShader.SetFloat("noiseWeight", settings.noiseWeight);
-        densityShader.SetBool("closeEdges", settings.closeEdges);
-        densityShader.SetBuffer(0, "offsets", offsetsBuffer);
-        densityShader.SetFloat("floorOffset", settings.floorOffset);
-        densityShader.SetFloat("weightMultiplier", settings.weightMultiplier);
-        densityShader.SetFloat("hardFloor", settings.hardFloorHeight);
-        densityShader.SetFloat("hardFloorWeight", settings.hardFloorWeight);
-        densityShader.SetVector("params", shaderParams);
+        DensityShader.SetVector("centre", new Vector4(centre.x, centre.y, centre.z));
+        DensityShader.SetInt("octaves", Mathf.Max(1, settings.numOctaves));
+        DensityShader.SetFloat("lacunarity", settings.lacunarity);
+        DensityShader.SetFloat("persistence", settings.persistence);
+        DensityShader.SetFloat("noiseScale", settings.noiseScale);
+        DensityShader.SetFloat("noiseWeight", settings.noiseWeight);
+        DensityShader.SetBool("closeEdges", settings.closeEdges);
+        DensityShader.SetBuffer(0, "offsets", offsetsBuffer);
+        DensityShader.SetFloat("floorOffset", settings.floorOffset);
+        DensityShader.SetFloat("weightMultiplier", settings.weightMultiplier);
+        DensityShader.SetFloat("hardFloor", settings.hardFloorHeight);
+        DensityShader.SetFloat("hardFloorWeight", settings.hardFloorWeight);
+        DensityShader.SetVector("params", shaderParams);
     }
 }
