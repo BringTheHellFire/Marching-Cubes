@@ -1,8 +1,7 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
-public class Chunk : MonoBehaviour {
+public class Chunk : MonoBehaviour 
+{
     public Vector3Int coord;
 
     [HideInInspector]
@@ -11,7 +10,6 @@ public class Chunk : MonoBehaviour {
     private MeshFilter meshFilter;
     private MeshRenderer meshRenderer;
     private MeshCollider meshCollider;
-    private bool generateCollider = false;
 
     public void DestroyOrDisable () {
         if (Application.isPlaying) {
@@ -22,10 +20,7 @@ public class Chunk : MonoBehaviour {
         }
     }
 
-    // Add components/get references in case lost (references can be lost when working in the editor)
     public void SetUp (Material mat, bool generateCollider) {
-        this.generateCollider = generateCollider;
-
         meshFilter = GetComponent<MeshFilter> ();
         meshRenderer = GetComponent<MeshRenderer> ();
         meshCollider = GetComponent<MeshCollider> ();
@@ -56,7 +51,6 @@ public class Chunk : MonoBehaviour {
             if (meshCollider.sharedMesh == null) {
                 meshCollider.sharedMesh = mesh;
             }
-            // force update
             meshCollider.enabled = false;
             meshCollider.enabled = true;
         }
