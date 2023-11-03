@@ -12,6 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6c5b82b8cef81304283825816df9de20, type: 3}
   m_Name: NoiseSettings
   m_EditorClassIdentifier: 
+  seed: 1
+  closeEdges: 1
+  numOctaves: 8
+  lacunarity: 1.5
+  persistence: 0.5
   noiseScaleRandomizationRange:
     minValue: 0.5
     maxValue: 5
