@@ -4,11 +4,15 @@ using UnityEngine;
 [ExecuteInEditMode]
 public class MeshGenerator : MonoBehaviour {
 
-    const int threadGroupSize = 8;
+    private const int threadGroupSize = 8;
+    private const string chunkHolderName = "Chunks Holder";
 
     [Header ("Dependancies")]
     [SerializeField] private DensityGenerator densityGenerator;
     [SerializeField] private ComputeShader marchingCubesComputeShader;
+
+    [Header("Noise Settings")]
+    [SerializeField] private NoiseSettingsRangeData noiseSettingsData;
 
     [Header("Auto Update Settings")]
     [SerializeField] private bool autoUpdateInEditor = true;
@@ -33,32 +37,27 @@ public class MeshGenerator : MonoBehaviour {
     public Vector3 noiseOffset = Vector3.zero;
 
     [Range (2, 100)]
-    public int numPointsPerAxis = 30;
+    [SerializeField] private int numPointsPerAxis = 30;
 
     [Header ("Gizmos")]
-    public bool showBoundsGizmo = true;
-    public Color boundsGizmoCol = Color.white;
+    [SerializeField] private bool showBoundsGizmo = true;
+    [SerializeField] private Color boundsGizmoCol = Color.white;
 
-    GameObject chunkHolder;
-    const string chunkHolderName = "Chunks Holder";
-    List<Chunk> chunks = new();
-    Dictionary<Vector3Int, Chunk> existingChunks = new();
-    Queue<Chunk> recycleableChunks = new();
+    private GameObject chunkHolder; 
+    private List<Chunk> chunks = new();
+    private Dictionary<Vector3Int, Chunk> existingChunks = new();
+    private Queue<Chunk> recycleableChunks = new();
 
-    bool settingsUpdated;
+    private bool settingsUpdated;
 
     private BufferManager bufferManager = new();
-
-    [SerializeField] private NoiseSettingsRangeData noiseSettingsData;
 
     private NoiseSettings currentNoiseSettings;
     private NoiseSettings targetNoiseSettings;
     private float transitionDuration = 5f;
     private float transitionTimer = 0.0f;
     private bool isTransitioning = false;
-
     private float targetIsoLevel;
-
 
     private void Awake () {
         if (Application.isPlaying && !fixedMapSize)
@@ -89,37 +88,9 @@ public class MeshGenerator : MonoBehaviour {
             RequestMeshUpdate();
             settingsUpdated = false;
         }
-
         if (Application.isPlaying)
         {
-            if (densityGenerator.TryGetComponent(out NoiseDensity noiseDensityComponent))
-            {
-                currentNoiseSettings = noiseDensityComponent.noiseSettings;
-                if (isTransitioning)
-                {
-                    if (transitionTimer < transitionDuration)
-                    {
-                        float t = transitionTimer / transitionDuration;
-                        float lerpedIsoLevel = Mathf.Lerp(isoLevel, targetIsoLevel, t);
-                        isoLevel = lerpedIsoLevel;
-                        noiseDensityComponent.noiseSettings = NoiseSettings.Lerp(currentNoiseSettings, targetNoiseSettings, t);
-                        RequestMeshUpdate();
-                        transitionTimer += Time.deltaTime;
-                    }
-                    else
-                    {
-                        currentNoiseSettings = targetNoiseSettings;
-                        isoLevel = targetIsoLevel;
-                        isTransitioning = false;
-                    }
-                }else if (!isTransitioning)
-                {
-                    targetNoiseSettings = NoiseSettings.GenerateRandomSettings(noiseSettingsData);
-                    targetIsoLevel = Random.Range(0f, 20f);
-                    transitionTimer = 0.0f;
-                    isTransitioning = true;
-                }
-            }
+            UpdateNoiseSettings();
         }
     }
 
@@ -447,6 +418,54 @@ public class MeshGenerator : MonoBehaviour {
         UpdateChunkMesh(chunk);
     }
     #endregion 
+
+    #region Update Noise Settings
+    private void UpdateNoiseSettings()
+    {
+        if (!densityGenerator.TryGetComponent(out NoiseDensity noiseDensityComponent))
+        {
+            return;
+        }
+
+        currentNoiseSettings = noiseDensityComponent.noiseSettings;
+
+        if (isTransitioning)
+        {
+            UpdateTransition(noiseDensityComponent);
+        }
+        else
+        {
+            StartTransition();
+        }
+    }
+
+    private void StartTransition()
+    {
+        targetNoiseSettings = NoiseSettings.GenerateRandomSettings(noiseSettingsData);
+        targetIsoLevel = Random.Range(0f, 20f);
+        transitionTimer = 0.0f;
+        isTransitioning = true;
+    }
+
+    private void UpdateTransition(NoiseDensity noiseDensityComponent)
+    {
+        if (transitionTimer < transitionDuration)
+        {
+            float t = transitionTimer / transitionDuration;
+            float lerpedIsoLevel = Mathf.Lerp(isoLevel, targetIsoLevel, t);
+            isoLevel = lerpedIsoLevel;
+            noiseDensityComponent.noiseSettings = NoiseSettings.Lerp(currentNoiseSettings, targetNoiseSettings, t);
+            RequestMeshUpdate();
+            transitionTimer += Time.deltaTime;
+        }
+        else
+        {
+            currentNoiseSettings = targetNoiseSettings;
+            isoLevel = targetIsoLevel;
+            isTransitioning = false;
+        }
+    }
+    #endregion
 
     private void OnDestroy () 
     {
