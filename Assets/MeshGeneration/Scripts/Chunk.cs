@@ -22,7 +22,6 @@ public class Chunk : MonoBehaviour {
         }
     }
 
-    // Add components/get references in case lost (references can be lost when working in the editor)
     public void SetUp (Material mat, bool generateCollider) {
         this.generateCollider = generateCollider;
 
@@ -56,7 +55,7 @@ public class Chunk : MonoBehaviour {
             if (meshCollider.sharedMesh == null) {
                 meshCollider.sharedMesh = mesh;
             }
-            // force update
+
             meshCollider.enabled = false;
             meshCollider.enabled = true;
         }

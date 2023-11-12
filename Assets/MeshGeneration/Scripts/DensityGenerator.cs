@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 public abstract class DensityGenerator : MonoBehaviour {
@@ -20,8 +19,7 @@ public abstract class DensityGenerator : MonoBehaviour {
     public virtual ComputeBuffer Generate (ComputeBuffer pointsBuffer, int numPointsPerAxis, float boundsSize, Vector3 worldBounds, Vector3 centre, Vector3 offset, float spacing)
     {
         int numThreadsPerAxis = Mathf.CeilToInt(numPointsPerAxis / (float)threadGroupSize);
-        // Points buffer is populated inside shader with pos (xyz) + density (w).
-        // Set paramaters
+
         densityShader.SetBuffer(0, "points", pointsBuffer);
         densityShader.SetInt("numPointsPerAxis", numPointsPerAxis);
         densityShader.SetFloat("boundsSize", boundsSize);
@@ -30,12 +28,10 @@ public abstract class DensityGenerator : MonoBehaviour {
         densityShader.SetFloat("spacing", spacing);
         densityShader.SetVector("worldSize", worldBounds);
 
-        // Dispatch shader
         densityShader.Dispatch(0, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
 
         ReleaseBuffers();
 
-        // Return voxel data buffer so it can be used to generate mesh
         return pointsBuffer;
     }
 
