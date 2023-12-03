@@ -16,7 +16,7 @@ public abstract class DensityGenerator : MonoBehaviour {
         }
     }
 
-    public virtual ComputeBuffer Generate (ComputeBuffer pointsBuffer, int numPointsPerAxis, float boundsSize, Vector3 worldBounds, Vector3 centre, Vector3 offset, float spacing)
+    public virtual ComputeBuffer Generate (ComputeBuffer pointsBuffer, int numPointsPerAxis, float boundsSize, Vector3 worldBounds, Vector3 centre, Vector3 offset, float spacing, float isoLevel)
     {
         int numThreadsPerAxis = Mathf.CeilToInt(numPointsPerAxis / (float)threadGroupSize);
 
@@ -27,6 +27,7 @@ public abstract class DensityGenerator : MonoBehaviour {
         densityShader.SetVector("offset", new Vector4(offset.x, offset.y, offset.z));
         densityShader.SetFloat("spacing", spacing);
         densityShader.SetVector("worldSize", worldBounds);
+        densityShader.SetFloat("isoLevel", isoLevel);
 
         densityShader.Dispatch(0, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
 

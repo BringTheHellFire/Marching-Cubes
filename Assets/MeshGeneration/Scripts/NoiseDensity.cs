@@ -8,7 +8,7 @@ public class NoiseDensity : DensityGenerator
 
     public Vector4 shaderParams;
 
-    public override ComputeBuffer Generate(ComputeBuffer pointsBuffer, int numPointsPerAxis, float boundsSize, Vector3 worldBounds, Vector3 centre, Vector3 offset, float spacing)
+    public override ComputeBuffer Generate(ComputeBuffer pointsBuffer, int numPointsPerAxis, float boundsSize, Vector3 worldBounds, Vector3 centre, Vector3 offset, float spacing, float isoLevel)
     {
         buffersToRelease = new List<ComputeBuffer>();
 
@@ -17,9 +17,9 @@ public class NoiseDensity : DensityGenerator
         ComputeBuffer offsetsBuffer = CreateOffsetsBuffer(offsets);
         buffersToRelease.Add(offsetsBuffer);
 
-        SetDensityShaderParameters(centre, noiseSettings, shaderParams, offsetsBuffer);
+        SetDensityShaderParameters(centre, noiseSettings, shaderParams, offsetsBuffer, isoLevel);
 
-        return base.Generate(pointsBuffer, numPointsPerAxis, boundsSize, worldBounds, centre, offset, spacing);
+        return base.Generate(pointsBuffer, numPointsPerAxis, boundsSize, worldBounds, centre, offset, spacing, isoLevel);
     }
 
     private Vector3[] GenerateOffsets(int seed, int numOctaves, float offsetRange)
@@ -46,7 +46,7 @@ public class NoiseDensity : DensityGenerator
         return offsetsBuffer;
     }
 
-    private void SetDensityShaderParameters(Vector3 centre, NoiseSettings settings, Vector4 shaderParams, ComputeBuffer offsetsBuffer)
+    private void SetDensityShaderParameters(Vector3 centre, NoiseSettings settings, Vector4 shaderParams, ComputeBuffer offsetsBuffer, float isoLevel)
     {
         densityShader.SetVector("centre", new Vector4(centre.x, centre.y, centre.z));
         densityShader.SetInt("octaves", Mathf.Max(1, settings.numOctaves));
@@ -61,5 +61,6 @@ public class NoiseDensity : DensityGenerator
         densityShader.SetFloat("hardFloor", settings.hardFloorHeight);
         densityShader.SetFloat("hardFloorWeight", settings.hardFloorWeight);
         densityShader.SetVector("params", shaderParams);
+        densityShader.SetFloat("isoLevel", isoLevel);
     }
 }

@@ -15,6 +15,8 @@ bool closeEdges;
 float hardFloor;
 float hardFloorWeight;
 
+float isoLevel;
+
 float4 params;
 
 [numthreads(numThreads,numThreads,numThreads)]
@@ -43,7 +45,7 @@ void Density (int3 id : SV_DispatchThreadID)
         frequency *= lacunarity;
     }
     
-    float finalVal = -(pos.y + floorOffset) + noise * noiseWeight + (pos.y%params.x) * params.y;
+    float finalVal = -max(pos.y + floorOffset, isoLevel-12) + noise * noiseWeight + (pos.y%params.x) * params.y;
 
     if (pos.y < hardFloor) {
         finalVal += hardFloorWeight;

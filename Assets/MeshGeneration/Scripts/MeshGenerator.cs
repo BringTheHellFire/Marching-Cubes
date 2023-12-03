@@ -59,6 +59,8 @@ public class MeshGenerator : MonoBehaviour {
     private bool isTransitioning = false;
     private float targetIsoLevel;
 
+    
+
     private void Awake () {
         if (Application.isPlaying && !fixedMapSize)
         {
@@ -175,7 +177,7 @@ public class MeshGenerator : MonoBehaviour {
             chunks.Add(newChunk);
         }
 
-        chunks[chunks.Count - 1].SetUp(meshMaterial, generateColliders);
+        chunks[chunks.Count - 1].SetUp(meshMaterial, generateColliders, isoLevel);
     }
 
     private Chunk FindChunkWithCoordinate(Vector3Int coord, List<Chunk> chunks)
@@ -229,13 +231,18 @@ public class MeshGenerator : MonoBehaviour {
         Vector3 worldBounds = new Vector3(numChunks.x, numChunks.y, numChunks.z) * boundsSize;
 
         GeneratePoints(worldBounds, centre, pointSpacing);
+
+        int numPoints = numPointsPerAxis * numPointsPerAxis * numPointsPerAxis;
+        chunk.pointArray = new Vector4[numPoints];
+        bufferManager.PointsBuffer.GetData(chunk.pointArray);
+
         ComputeMeshTriangles(numThreadsPerAxis, out Triangle[] triangles, out int numOfTriangles);
         CreateMeshForChunk(chunk, triangles, numOfTriangles);
     }
 
     private void GeneratePoints(Vector3 worldBounds, Vector3 centre, float pointSpacing)
     {
-        densityGenerator.Generate(bufferManager.PointsBuffer, numPointsPerAxis, boundsSize, worldBounds, centre, noiseOffset, pointSpacing);
+        densityGenerator.Generate(bufferManager.PointsBuffer, numPointsPerAxis, boundsSize, worldBounds, centre, noiseOffset, pointSpacing, isoLevel);
     }
 
     private void ComputeMeshTriangles(int numThreadsPerAxis, out Triangle[] triangles, out int numOfTriangles)
@@ -412,7 +419,7 @@ public class MeshGenerator : MonoBehaviour {
     {
         Chunk chunk = CreateChunk(coord);
         chunk.coord = coord;
-        chunk.SetUp(meshMaterial, generateColliders);
+        chunk.SetUp(meshMaterial, generateColliders, isoLevel);
         existingChunks.Add(coord, chunk);
         chunks.Add(chunk);
         UpdateChunkMesh(chunk);
