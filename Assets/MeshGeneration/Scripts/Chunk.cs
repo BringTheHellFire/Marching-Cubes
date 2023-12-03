@@ -13,6 +13,9 @@ public class Chunk : MonoBehaviour {
     private MeshCollider meshCollider;
     private bool generateCollider = false;
 
+    public Vector4[] pointArray;
+    private float isoLevel;
+
     public void DestroyOrDisable () {
         if (Application.isPlaying) {
             mesh.Clear ();
@@ -22,7 +25,9 @@ public class Chunk : MonoBehaviour {
         }
     }
 
-    public void SetUp (Material mat, bool generateCollider) {
+    public void SetUp (Material mat, bool generateCollider, float isoLevel) {
+        this.isoLevel = isoLevel;
+
         this.generateCollider = generateCollider;
 
         meshFilter = GetComponent<MeshFilter> ();
@@ -61,5 +66,19 @@ public class Chunk : MonoBehaviour {
         }
 
         meshRenderer.material = mat;
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        if (pointArray == null) return;
+
+        for (int i = 0; i < pointArray.Length; i+=27)
+        {
+            Vector3 voxelPosition = new Vector3(pointArray[i].x, pointArray[i].y, pointArray[i].z);
+            if(pointArray[i].w > isoLevel)
+            {
+                Gizmos.DrawSphere(transform.position + voxelPosition, 0.25f*(pointArray[i].w/10f));
+            }
+        }
     }
 }
