@@ -46,7 +46,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   densityShader: {fileID: 7200000, guid: 6f17253ba515b49de95452c1dcbdc45c, type: 3}
   noiseSettings:
-    seed: 1
+    seed: 5
     closeEdges: 1
     numOctaves: 8
     lacunarity: 1.5
