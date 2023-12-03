@@ -53,10 +53,10 @@ MonoBehaviour:
   meshMaterial: {fileID: 2100000, guid: 2a03c3efe0219c747a47610d7f8ff104, type: 2}
   generateColliders: 0
   fixedMapSize: 1
-  numChunks: {x: 2, y: 2, z: 3}
+  numChunks: {x: 5, y: 5, z: 5}
   viewer: {fileID: 0}
   viewDistance: 30
-  isoLevel: 8
+  isoLevel: 10
   boundsSize: 20
   noiseOffset: {x: 5, y: 2, z: 0}
   numPointsPerAxis: 50
