@@ -11,7 +11,7 @@ public class NoiseSettings
     [Tooltip("If set to true, it ensures that the edges of the density field are 'closed' or 'sealed'.")]
     public bool closeEdges;
     [Tooltip("Number of layers of the noise. For making finer details.")]
-    public int numOctaves = 4;
+    [Min(1)]public int numOctaves = 4;
     [Tooltip("The frequency of each octave. For making the noise more detailed or smoother.")]
     public float lacunarity = 2;
     [Tooltip("Amplitude of each octave. A value less than 1 decreases the contirbution of each subsequen octave.")]

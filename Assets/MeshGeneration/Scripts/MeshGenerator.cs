@@ -243,26 +243,33 @@ public class MeshGenerator : MonoBehaviour {
 
     private void GeneratePoints(Vector3 worldBounds, Vector3 centre, float pointSpacing)
     {
-        densityGenerator.Generate(bufferManager.PointsBuffer, numPointsPerAxis, boundsSize, worldBounds, centre, noiseOffset, pointSpacing, isoLevel);
-        densityGenerator.GenerateCaves(bufferManager.CavePointsBuffer, numPointsPerAxis, boundsSize, worldBounds, centre, noiseOffset, pointSpacing, isoLevel);
-
         int numPoints = numPointsPerAxis * numPointsPerAxis * numPointsPerAxis;
-        Vector4[] points = new Vector4[numPoints];
-        Vector4[] cavePoints = new Vector4[numPoints];
 
+        densityGenerator.Generate(bufferManager.PointsBuffer, numPointsPerAxis, boundsSize, worldBounds, centre, noiseOffset, pointSpacing, isoLevel);
+        Vector4[] points = new Vector4[numPoints];
         bufferManager.PointsBuffer.GetData(points);
-        bufferManager.CavePointsBuffer.GetData(cavePoints);
+
+        densityGenerator.GenerateCaves(bufferManager.PointsBuffer, numPointsPerAxis, boundsSize, worldBounds, centre, noiseOffset, pointSpacing, isoLevel);
+        Vector4[] cavePoints = new Vector4[numPoints];
+        bufferManager.PointsBuffer.GetData(cavePoints);
 
         for (int i = 0; i < numPoints; i++)
         {
-            if(points[i].w >= isoLevel)
+            float pointValue = points[i].w;
+            const float surfaceOffset = 0.3f; // Added fixed offset from surface
+            const float lerpDistance = 13; // Added lerp distance over which the point value transitions from surface to cave
+            if (pointValue > isoLevel+surfaceOffset)
             {
-                float combinedX = points[i].x;
-                float combinedY = points[i].y;
-                float combinedZ = points[i].z;
-                float combinedW = cavePoints[i].w;
-
-                points[i] = new Vector4(combinedX, combinedY, combinedZ, combinedW);
+                float newValue = Mathf.Lerp(
+                                        points[i].w,
+                                        cavePoints[i].w,
+                                        (pointValue - (isoLevel + surfaceOffset)) / lerpDistance);
+                points[i] = new Vector4(
+                    points[i].x, 
+                    points[i].y, 
+                    points[i].z,
+                    newValue
+                    );
             }
         }
 

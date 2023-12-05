@@ -56,7 +56,7 @@ MonoBehaviour:
     noiseWeight: 11.24
     floorOffset: 1
     weightMultiplier: 10
-    hardFloorHeight: 9.74
+    hardFloorHeight: 0
     hardFloorWeight: 0
   caveNoiseSettings:
     seed: 1

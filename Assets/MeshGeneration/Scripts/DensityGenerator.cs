@@ -19,16 +19,9 @@ public abstract class DensityGenerator : MonoBehaviour {
 
     public virtual ComputeBuffer Generate(ComputeBuffer pointsBuffer, int numPointsPerAxis, float boundsSize, Vector3 worldBounds, Vector3 centre, Vector3 offset, float spacing, float isoLevel)
     {
-        int numThreadsPerAxis = Mathf.CeilToInt(numPointsPerAxis / (float)threadGroupSize);
+        int numThreadsPerAxis = GetNumberOfThreadsPerAxis(numPointsPerAxis);
 
-        densityShader.SetBuffer(0, "points", pointsBuffer);
-        densityShader.SetInt("numPointsPerAxis", numPointsPerAxis);
-        densityShader.SetFloat("boundsSize", boundsSize);
-        densityShader.SetVector("centre", new Vector4(centre.x, centre.y, centre.z));
-        densityShader.SetVector("offset", new Vector4(offset.x, offset.y, offset.z));
-        densityShader.SetFloat("spacing", spacing);
-        densityShader.SetVector("worldSize", worldBounds);
-        densityShader.SetFloat("isoLevel", isoLevel);
+        SetShaderParameters(densityShader, pointsBuffer, numPointsPerAxis, boundsSize, worldBounds, centre, offset, spacing, isoLevel);
 
         densityShader.Dispatch(0, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
 
@@ -39,22 +32,32 @@ public abstract class DensityGenerator : MonoBehaviour {
 
     public virtual ComputeBuffer GenerateCaves(ComputeBuffer pointsBuffer, int numPointsPerAxis, float boundsSize, Vector3 worldBounds, Vector3 centre, Vector3 offset, float spacing, float isoLevel)
     {
-        int numThreadsPerAxis = Mathf.CeilToInt(numPointsPerAxis / (float)threadGroupSize);
+        int numThreadsPerAxis = GetNumberOfThreadsPerAxis(numPointsPerAxis);
 
-        caveDensityShader.SetBuffer(0, "points", pointsBuffer);
-        caveDensityShader.SetInt("numPointsPerAxis", numPointsPerAxis);
-        caveDensityShader.SetFloat("boundsSize", boundsSize);
-        caveDensityShader.SetVector("centre", new Vector4(centre.x, centre.y, centre.z));
-        caveDensityShader.SetVector("offset", new Vector4(offset.x, offset.y, offset.z));
-        caveDensityShader.SetFloat("spacing", spacing);
-        caveDensityShader.SetVector("worldSize", worldBounds);
-        caveDensityShader.SetFloat("isoLevel", isoLevel);
+        SetShaderParameters(caveDensityShader, pointsBuffer, numPointsPerAxis, boundsSize, worldBounds, centre, offset, spacing, isoLevel);
 
         caveDensityShader.Dispatch(0, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
 
         ReleaseBuffers();
 
         return pointsBuffer;
+    }
+
+    private void SetShaderParameters(ComputeShader shader, ComputeBuffer pointsBuffer, int numPointsPerAxis, float boundsSize, Vector3 worldBounds, Vector3 centre, Vector3 offset, float spacing, float isoLevel)
+    {
+        shader.SetBuffer(0, "points", pointsBuffer);
+        shader.SetInt("numPointsPerAxis", numPointsPerAxis);
+        shader.SetFloat("boundsSize", boundsSize);
+        shader.SetVector("centre", new Vector4(centre.x, centre.y, centre.z));
+        shader.SetVector("offset", new Vector4(offset.x, offset.y, offset.z));
+        shader.SetFloat("spacing", spacing);
+        shader.SetVector("worldSize", worldBounds);
+        shader.SetFloat("isoLevel", isoLevel);
+    }
+
+    private int GetNumberOfThreadsPerAxis(int numPointsPerAxis)
+    {
+        return Mathf.CeilToInt(numPointsPerAxis / (float)threadGroupSize);
     }
 
     private void ReleaseBuffers()

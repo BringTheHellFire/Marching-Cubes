@@ -5,12 +5,10 @@ public class BufferManager
     private ComputeBuffer triangleBuffer;
     private ComputeBuffer pointsBuffer;
     private ComputeBuffer triCountBuffer;
-    private ComputeBuffer cavePointsBuffer;
 
     public ComputeBuffer TriangleBuffer => triangleBuffer;
     public ComputeBuffer PointsBuffer => pointsBuffer;
     public ComputeBuffer TriCountBuffer => triCountBuffer;
-    public ComputeBuffer CavePointsBuffer { get => cavePointsBuffer; set => cavePointsBuffer = value; }
 
     public void CreateBuffers(int pointsPerAxis)
     {
@@ -25,7 +23,6 @@ public class BufferManager
             triangleBuffer = new ComputeBuffer(maxTriangleCount, sizeof(float) * 3 * 3, ComputeBufferType.Append);
             pointsBuffer = new ComputeBuffer(numPoints, sizeof(float) * 4);
             triCountBuffer = new ComputeBuffer(1, sizeof(int), ComputeBufferType.Raw);
-            cavePointsBuffer = new ComputeBuffer(numPoints, sizeof(float) * 4);
         }
     }
 
@@ -34,6 +31,5 @@ public class BufferManager
         triangleBuffer?.Release();
         pointsBuffer?.Release();
         triCountBuffer?.Release();
-        cavePointsBuffer?.Release();
     }
 }

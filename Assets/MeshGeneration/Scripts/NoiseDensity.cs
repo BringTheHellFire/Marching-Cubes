@@ -18,7 +18,7 @@ public class NoiseDensity : DensityGenerator
         ComputeBuffer offsetsBuffer = CreateOffsetsBuffer(offsets);
         buffersToRelease.Add(offsetsBuffer);
 
-        SetDensityShaderParameters(centre, noiseSettings, shaderParams, offsetsBuffer, isoLevel);
+        SetShaderParameters(densityShader, centre, noiseSettings, shaderParams, offsetsBuffer, isoLevel);
 
         return base.Generate(pointsBuffer, numPointsPerAxis, boundsSize, worldBounds, centre, offset, spacing, isoLevel);
     }
@@ -32,7 +32,7 @@ public class NoiseDensity : DensityGenerator
         ComputeBuffer offsetsBuffer = CreateOffsetsBuffer(offsets);
         buffersToRelease.Add(offsetsBuffer);
 
-        SetCaveDensityShaderParameters(centre, caveNoiseSettings, shaderParams, offsetsBuffer);
+        SetShaderParameters(caveDensityShader, centre, caveNoiseSettings, shaderParams, offsetsBuffer, isoLevel);
 
         return base.GenerateCaves(pointsBuffer, numPointsPerAxis, boundsSize, worldBounds, centre, offset, spacing, isoLevel);
     }
@@ -61,38 +61,21 @@ public class NoiseDensity : DensityGenerator
         return offsetsBuffer;
     }
 
-    private void SetDensityShaderParameters(Vector3 centre, NoiseSettings settings, Vector4 shaderParams, ComputeBuffer offsetsBuffer, float isoLevel)
+    private void SetShaderParameters(ComputeShader shader, Vector3 centre, NoiseSettings settings, Vector4 shaderParams, ComputeBuffer offsetsBuffer, float isoLevel)
     {
-        densityShader.SetVector("centre", new Vector4(centre.x, centre.y, centre.z));
-        densityShader.SetInt("octaves", Mathf.Max(1, settings.numOctaves));
-        densityShader.SetFloat("lacunarity", settings.lacunarity);
-        densityShader.SetFloat("persistence", settings.persistence);
-        densityShader.SetFloat("noiseScale", settings.noiseScale);
-        densityShader.SetFloat("noiseWeight", settings.noiseWeight);
-        densityShader.SetBool("closeEdges", settings.closeEdges);
-        densityShader.SetBuffer(0, "offsets", offsetsBuffer);
-        densityShader.SetFloat("floorOffset", settings.floorOffset);
-        densityShader.SetFloat("weightMultiplier", settings.weightMultiplier);
-        densityShader.SetFloat("hardFloor", settings.hardFloorHeight);
-        densityShader.SetFloat("hardFloorWeight", settings.hardFloorWeight);
-        densityShader.SetVector("params", shaderParams);
-        densityShader.SetFloat("isoLevel", isoLevel);
-    }
-
-    private void SetCaveDensityShaderParameters(Vector3 centre, NoiseSettings settings, Vector4 shaderParams, ComputeBuffer offsetsBuffer)
-    {
-        caveDensityShader.SetVector("centre", new Vector4(centre.x, centre.y, centre.z));
-        caveDensityShader.SetInt("octaves", Mathf.Max(1, settings.numOctaves));
-        caveDensityShader.SetFloat("lacunarity", settings.lacunarity);
-        caveDensityShader.SetFloat("persistence", settings.persistence);
-        caveDensityShader.SetFloat("noiseScale", settings.noiseScale);
-        caveDensityShader.SetFloat("noiseWeight", settings.noiseWeight);
-        caveDensityShader.SetBool("closeEdges", settings.closeEdges);
-        caveDensityShader.SetBuffer(0, "offsets", offsetsBuffer);
-        caveDensityShader.SetFloat("floorOffset", settings.floorOffset);
-        caveDensityShader.SetFloat("weightMultiplier", settings.weightMultiplier);
-        caveDensityShader.SetFloat("hardFloor", settings.hardFloorHeight);
-        caveDensityShader.SetFloat("hardFloorWeight", settings.hardFloorWeight);
-        caveDensityShader.SetVector("params", shaderParams);
+        shader.SetVector("centre", new Vector4(centre.x, centre.y, centre.z));
+        shader.SetInt("octaves", Mathf.Max(1, settings.numOctaves));
+        shader.SetFloat("lacunarity", settings.lacunarity);
+        shader.SetFloat("persistence", settings.persistence);
+        shader.SetFloat("noiseScale", settings.noiseScale);
+        shader.SetFloat("noiseWeight", settings.noiseWeight);
+        shader.SetBool("closeEdges", settings.closeEdges);
+        shader.SetBuffer(0, "offsets", offsetsBuffer);
+        shader.SetFloat("floorOffset", settings.floorOffset);
+        shader.SetFloat("weightMultiplier", settings.weightMultiplier);
+        shader.SetFloat("hardFloor", settings.hardFloorHeight);
+        shader.SetFloat("hardFloorWeight", settings.hardFloorWeight);
+        shader.SetVector("params", shaderParams);
+        shader.SetFloat("isoLevel", isoLevel);
     }
 }
