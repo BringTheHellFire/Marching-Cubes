@@ -60,7 +60,7 @@ public class NoiseSettings
         randomSettings.seed = 1;
         randomSettings.closeEdges = true;
         randomSettings.numOctaves = 8;
-        randomSettings.lacunarity = 2f;
+        randomSettings.lacunarity = 1.5f;
         randomSettings.persistence = 0.54f;
         randomSettings.noiseScale = Random.Range(noiseSettingsData.NoiseScaleRandomizationRange.minValue, noiseSettingsData.NoiseScaleRandomizationRange.maxValue);
         randomSettings.noiseWeight = Random.Range(noiseSettingsData.NoiseWeightRandomizationRange.minValue, noiseSettingsData.NoiseWeightRandomizationRange.maxValue);

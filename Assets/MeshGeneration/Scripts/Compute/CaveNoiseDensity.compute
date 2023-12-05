@@ -45,7 +45,7 @@ void Density (int3 id : SV_DispatchThreadID)
         frequency *= lacunarity;
     }
     
-    float finalVal = -(pos.y + floorOffset) + noise * noiseWeight + (pos.y%params.x) * params.y;
+    float finalVal = noise * noiseWeight + (pos.y%params.x) * params.y;
 
     if (pos.y < hardFloor) {
         finalVal += hardFloorWeight;

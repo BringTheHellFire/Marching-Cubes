@@ -45,16 +45,29 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   densityShader: {fileID: 7200000, guid: 6f17253ba515b49de95452c1dcbdc45c, type: 3}
+  caveDensityShader: {fileID: 7200000, guid: 4c9e32d63d52cf04483024ecf0a7ae08, type: 3}
   noiseSettings:
-    seed: 5
+    seed: 1
     closeEdges: 1
     numOctaves: 8
     lacunarity: 1.5
-    persistence: 0.5
+    persistence: 0.54
     noiseScale: 2
     noiseWeight: 11.24
     floorOffset: 1
     weightMultiplier: 10
     hardFloorHeight: 9.74
+    hardFloorWeight: 0
+  caveNoiseSettings:
+    seed: 1
+    closeEdges: 1
+    numOctaves: 6
+    lacunarity: 2
+    persistence: 0.5
+    noiseScale: 0.84
+    noiseWeight: 12.2
+    floorOffset: 0
+    weightMultiplier: 6.77
+    hardFloorHeight: 0
     hardFloorWeight: 0
   shaderParams: {x: 1, y: 0, z: 0, w: 0}

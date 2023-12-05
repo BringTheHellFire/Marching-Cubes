@@ -7,6 +7,7 @@ public abstract class DensityGenerator : MonoBehaviour {
 
     [Header("Density Calculator")]
     public ComputeShader densityShader;
+    public ComputeShader caveDensityShader;
 
     protected List<ComputeBuffer> buffersToRelease;
 
@@ -16,7 +17,7 @@ public abstract class DensityGenerator : MonoBehaviour {
         }
     }
 
-    public virtual ComputeBuffer Generate (ComputeBuffer pointsBuffer, int numPointsPerAxis, float boundsSize, Vector3 worldBounds, Vector3 centre, Vector3 offset, float spacing, float isoLevel)
+    public virtual ComputeBuffer Generate(ComputeBuffer pointsBuffer, int numPointsPerAxis, float boundsSize, Vector3 worldBounds, Vector3 centre, Vector3 offset, float spacing, float isoLevel)
     {
         int numThreadsPerAxis = Mathf.CeilToInt(numPointsPerAxis / (float)threadGroupSize);
 
@@ -30,6 +31,26 @@ public abstract class DensityGenerator : MonoBehaviour {
         densityShader.SetFloat("isoLevel", isoLevel);
 
         densityShader.Dispatch(0, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
+
+        ReleaseBuffers();
+
+        return pointsBuffer;
+    }
+
+    public virtual ComputeBuffer GenerateCaves(ComputeBuffer pointsBuffer, int numPointsPerAxis, float boundsSize, Vector3 worldBounds, Vector3 centre, Vector3 offset, float spacing, float isoLevel)
+    {
+        int numThreadsPerAxis = Mathf.CeilToInt(numPointsPerAxis / (float)threadGroupSize);
+
+        caveDensityShader.SetBuffer(0, "points", pointsBuffer);
+        caveDensityShader.SetInt("numPointsPerAxis", numPointsPerAxis);
+        caveDensityShader.SetFloat("boundsSize", boundsSize);
+        caveDensityShader.SetVector("centre", new Vector4(centre.x, centre.y, centre.z));
+        caveDensityShader.SetVector("offset", new Vector4(offset.x, offset.y, offset.z));
+        caveDensityShader.SetFloat("spacing", spacing);
+        caveDensityShader.SetVector("worldSize", worldBounds);
+        caveDensityShader.SetFloat("isoLevel", isoLevel);
+
+        caveDensityShader.Dispatch(0, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
 
         ReleaseBuffers();
 

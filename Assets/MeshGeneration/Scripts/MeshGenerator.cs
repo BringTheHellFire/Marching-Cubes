@@ -13,6 +13,7 @@ public class MeshGenerator : MonoBehaviour {
 
     [Header("Noise Settings")]
     [SerializeField] private NoiseSettingsRangeData noiseSettingsData;
+    [SerializeField] private NoiseSettingsRangeData caveNoiseSettingsData;
 
     [Header("Auto Update Settings")]
     [SerializeField] private bool autoUpdateInEditor = true;
@@ -57,9 +58,9 @@ public class MeshGenerator : MonoBehaviour {
     private float transitionDuration = 5f;
     private float transitionTimer = 0.0f;
     private bool isTransitioning = false;
-    private float targetIsoLevel;
 
-    
+    private NoiseSettings currentCaveNoiseSettings;
+    private NoiseSettings targetCaveNoiseSettings;
 
     private void Awake () {
         if (Application.isPlaying && !fixedMapSize)
@@ -243,6 +244,29 @@ public class MeshGenerator : MonoBehaviour {
     private void GeneratePoints(Vector3 worldBounds, Vector3 centre, float pointSpacing)
     {
         densityGenerator.Generate(bufferManager.PointsBuffer, numPointsPerAxis, boundsSize, worldBounds, centre, noiseOffset, pointSpacing, isoLevel);
+        densityGenerator.GenerateCaves(bufferManager.CavePointsBuffer, numPointsPerAxis, boundsSize, worldBounds, centre, noiseOffset, pointSpacing, isoLevel);
+
+        int numPoints = numPointsPerAxis * numPointsPerAxis * numPointsPerAxis;
+        Vector4[] points = new Vector4[numPoints];
+        Vector4[] cavePoints = new Vector4[numPoints];
+
+        bufferManager.PointsBuffer.GetData(points);
+        bufferManager.CavePointsBuffer.GetData(cavePoints);
+
+        for (int i = 0; i < numPoints; i++)
+        {
+            if(points[i].w >= isoLevel)
+            {
+                float combinedX = points[i].x;
+                float combinedY = points[i].y;
+                float combinedZ = points[i].z;
+                float combinedW = cavePoints[i].w;
+
+                points[i] = new Vector4(combinedX, combinedY, combinedZ, combinedW);
+            }
+        }
+
+        bufferManager.PointsBuffer.SetData(points);
     }
 
     private void ComputeMeshTriangles(int numThreadsPerAxis, out Triangle[] triangles, out int numOfTriangles)
@@ -435,6 +459,7 @@ public class MeshGenerator : MonoBehaviour {
         }
 
         currentNoiseSettings = noiseDensityComponent.noiseSettings;
+        currentCaveNoiseSettings = noiseDensityComponent.caveNoiseSettings;
 
         if (isTransitioning)
         {
@@ -449,7 +474,7 @@ public class MeshGenerator : MonoBehaviour {
     private void StartTransition()
     {
         targetNoiseSettings = NoiseSettings.GenerateRandomSettings(noiseSettingsData);
-        targetIsoLevel = Random.Range(0f, 20f);
+        targetCaveNoiseSettings = NoiseSettings.GenerateRandomSettings(caveNoiseSettingsData);
         transitionTimer = 0.0f;
         isTransitioning = true;
     }
@@ -459,16 +484,15 @@ public class MeshGenerator : MonoBehaviour {
         if (transitionTimer < transitionDuration)
         {
             float t = transitionTimer / transitionDuration;
-            float lerpedIsoLevel = Mathf.Lerp(isoLevel, targetIsoLevel, t);
-            isoLevel = lerpedIsoLevel;
             noiseDensityComponent.noiseSettings = NoiseSettings.Lerp(currentNoiseSettings, targetNoiseSettings, t);
+            noiseDensityComponent.caveNoiseSettings = NoiseSettings.Lerp(currentCaveNoiseSettings, targetCaveNoiseSettings, t);
             RequestMeshUpdate();
             transitionTimer += Time.deltaTime;
         }
         else
         {
             currentNoiseSettings = targetNoiseSettings;
-            isoLevel = targetIsoLevel;
+            currentCaveNoiseSettings = targetCaveNoiseSettings;
             isTransitioning = false;
         }
     }

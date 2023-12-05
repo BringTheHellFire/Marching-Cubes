@@ -48,12 +48,14 @@ MonoBehaviour:
   marchingCubesComputeShader: {fileID: 7200000, guid: e6675a5747764487687871eed95a316b,
     type: 3}
   noiseSettingsData: {fileID: 11400000, guid: abcfce4f2f3ec7c4cab27713399b137c, type: 2}
+  caveNoiseSettingsData: {fileID: 11400000, guid: 298598e04f8a417438fbe02b1f2b8af2,
+    type: 2}
   autoUpdateInEditor: 1
   autoUpdateInGame: 1
   meshMaterial: {fileID: 2100000, guid: 2a03c3efe0219c747a47610d7f8ff104, type: 2}
   generateColliders: 0
   fixedMapSize: 1
-  numChunks: {x: 5, y: 5, z: 5}
+  numChunks: {x: 2, y: 3, z: 3}
   viewer: {fileID: 0}
   viewDistance: 30
   isoLevel: 10
