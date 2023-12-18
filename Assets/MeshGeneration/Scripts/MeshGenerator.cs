@@ -65,6 +65,8 @@ public class MeshGenerator : MonoBehaviour {
     [Header("Noise Settings")]
     [SerializeField] private NoiseSettings surfaceNoiseSettings;
     [SerializeField] private NoiseSettings caveNoiseSettings;
+    [SerializeField] private NoiseSettings windyCaveNoiseSettings;
+    [SerializeField] private AnimationCurve windyCaveCurve = AnimationCurve.Linear(0,0,1,1);
 
     private void Awake () {
         if (Application.isPlaying && !fixedMapSize)
@@ -256,18 +258,22 @@ public class MeshGenerator : MonoBehaviour {
         densityGenerator.Generate(caveNoiseSettings, bufferManager.PointsBuffer, numPointsPerAxis, boundsSize, worldBounds, centre, noiseOffset, pointSpacing, isoLevel);
         Vector4[] cavePoints = new Vector4[numPoints];
         bufferManager.PointsBuffer.GetData(cavePoints);
+        
+        densityGenerator.Generate(windyCaveNoiseSettings, bufferManager.PointsBuffer, numPointsPerAxis, boundsSize, worldBounds, centre, noiseOffset, pointSpacing, isoLevel);
+        Vector4[] windyCavePoints = new Vector4[numPoints];
+        bufferManager.PointsBuffer.GetData(windyCavePoints);
 
         for (int i = 0; i < numPoints; i++)
         {
             float pointValue = points[i].w;
             const float surfaceOffset = 0.3f; // Added fixed offset from surface
             const float lerpDistance = 13; // Added lerp distance over which the point value transitions from surface to cave
-            if (pointValue > isoLevel+surfaceOffset)
+            if (pointValue > isoLevel - windyCaveCurve.Evaluate(windyCavePoints[i].w/windyCaveNoiseSettings.noiseWeight)*windyCaveNoiseSettings.noiseWeight)
             {
                 float newValue = Mathf.Lerp(
-                                        points[i].w,
-                                        cavePoints[i].w,
-                                        (pointValue - (isoLevel + surfaceOffset)) / lerpDistance);
+                                        pointValue,
+                                        cavePoints[i].w - windyCaveCurve.Evaluate(windyCavePoints[i].w/windyCaveNoiseSettings.noiseWeight)*windyCaveNoiseSettings.noiseWeight,
+                                        (pointValue - (isoLevel)) / lerpDistance);
                 points[i] = new Vector4(
                     points[i].x, 
                     points[i].y, 
