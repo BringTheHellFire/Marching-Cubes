@@ -4,12 +4,9 @@ using UnityEngine;
 
 public class NoiseDensity : DensityGenerator 
 {
-    public NoiseSettings noiseSettings;
-    public NoiseSettings caveNoiseSettings;
-
     public Vector4 shaderParams;
 
-    public override ComputeBuffer Generate(ComputeBuffer pointsBuffer, int numPointsPerAxis, float boundsSize, Vector3 worldBounds, Vector3 centre, Vector3 offset, float spacing, float isoLevel)
+    public override ComputeBuffer Generate(NoiseSettings noiseSettings, ComputeBuffer pointsBuffer, int numPointsPerAxis, float boundsSize, Vector3 worldBounds, Vector3 centre, Vector3 offset, float spacing, float isoLevel)
     {
         buffersToRelease = new List<ComputeBuffer>();
 
@@ -18,23 +15,9 @@ public class NoiseDensity : DensityGenerator
         ComputeBuffer offsetsBuffer = CreateOffsetsBuffer(offsets);
         buffersToRelease.Add(offsetsBuffer);
 
-        SetShaderParameters(densityShader, centre, noiseSettings, shaderParams, offsetsBuffer, isoLevel);
+        SetShaderParameters(noiseSettings.densityShader, centre, noiseSettings, shaderParams, offsetsBuffer, isoLevel);
 
-        return base.Generate(pointsBuffer, numPointsPerAxis, boundsSize, worldBounds, centre, offset, spacing, isoLevel);
-    }
-
-    public override ComputeBuffer GenerateCaves(ComputeBuffer pointsBuffer, int numPointsPerAxis, float boundsSize, Vector3 worldBounds, Vector3 centre, Vector3 offset, float spacing, float isoLevel)
-    {
-        buffersToRelease = new List<ComputeBuffer>();
-
-        Vector3[] offsets = GenerateOffsets(caveNoiseSettings.seed, caveNoiseSettings.numOctaves, 1000);
-
-        ComputeBuffer offsetsBuffer = CreateOffsetsBuffer(offsets);
-        buffersToRelease.Add(offsetsBuffer);
-
-        SetShaderParameters(caveDensityShader, centre, caveNoiseSettings, shaderParams, offsetsBuffer, isoLevel);
-
-        return base.GenerateCaves(pointsBuffer, numPointsPerAxis, boundsSize, worldBounds, centre, offset, spacing, isoLevel);
+        return base.Generate(noiseSettings, pointsBuffer, numPointsPerAxis, boundsSize, worldBounds, centre, offset, spacing, isoLevel);
     }
 
     private Vector3[] GenerateOffsets(int seed, int numOctaves, float offsetRange)

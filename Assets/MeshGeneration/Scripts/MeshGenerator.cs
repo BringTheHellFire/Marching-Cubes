@@ -62,6 +62,10 @@ public class MeshGenerator : MonoBehaviour {
     private NoiseSettings currentCaveNoiseSettings;
     private NoiseSettings targetCaveNoiseSettings;
 
+    [Header("Noise Settings")]
+    [SerializeField] private NoiseSettings surfaceNoiseSettings;
+    [SerializeField] private NoiseSettings caveNoiseSettings;
+
     private void Awake () {
         if (Application.isPlaying && !fixedMapSize)
         {
@@ -245,11 +249,11 @@ public class MeshGenerator : MonoBehaviour {
     {
         int numPoints = numPointsPerAxis * numPointsPerAxis * numPointsPerAxis;
 
-        densityGenerator.Generate(bufferManager.PointsBuffer, numPointsPerAxis, boundsSize, worldBounds, centre, noiseOffset, pointSpacing, isoLevel);
+        densityGenerator.Generate(surfaceNoiseSettings, bufferManager.PointsBuffer, numPointsPerAxis, boundsSize, worldBounds, centre, noiseOffset, pointSpacing, isoLevel);
         Vector4[] points = new Vector4[numPoints];
         bufferManager.PointsBuffer.GetData(points);
 
-        densityGenerator.GenerateCaves(bufferManager.PointsBuffer, numPointsPerAxis, boundsSize, worldBounds, centre, noiseOffset, pointSpacing, isoLevel);
+        densityGenerator.Generate(caveNoiseSettings, bufferManager.PointsBuffer, numPointsPerAxis, boundsSize, worldBounds, centre, noiseOffset, pointSpacing, isoLevel);
         Vector4[] cavePoints = new Vector4[numPoints];
         bufferManager.PointsBuffer.GetData(cavePoints);
 
@@ -460,17 +464,12 @@ public class MeshGenerator : MonoBehaviour {
     #region Update Noise Settings
     private void UpdateNoiseSettings()
     {
-        if (!densityGenerator.TryGetComponent(out NoiseDensity noiseDensityComponent))
-        {
-            return;
-        }
-
-        currentNoiseSettings = noiseDensityComponent.noiseSettings;
-        currentCaveNoiseSettings = noiseDensityComponent.caveNoiseSettings;
+        currentNoiseSettings = surfaceNoiseSettings;
+        currentCaveNoiseSettings = caveNoiseSettings;
 
         if (isTransitioning)
         {
-            UpdateTransition(noiseDensityComponent);
+            UpdateTransition();
         }
         else
         {
@@ -486,13 +485,13 @@ public class MeshGenerator : MonoBehaviour {
         isTransitioning = true;
     }
 
-    private void UpdateTransition(NoiseDensity noiseDensityComponent)
+    private void UpdateTransition()
     {
         if (transitionTimer < transitionDuration)
         {
             float t = transitionTimer / transitionDuration;
-            noiseDensityComponent.noiseSettings = NoiseSettings.Lerp(currentNoiseSettings, targetNoiseSettings, t);
-            noiseDensityComponent.caveNoiseSettings = NoiseSettings.Lerp(currentCaveNoiseSettings, targetCaveNoiseSettings, t);
+            surfaceNoiseSettings = NoiseSettings.Lerp(currentNoiseSettings, targetNoiseSettings, t);
+            caveNoiseSettings = NoiseSettings.Lerp(currentCaveNoiseSettings, targetCaveNoiseSettings, t);
             RequestMeshUpdate();
             transitionTimer += Time.deltaTime;
         }

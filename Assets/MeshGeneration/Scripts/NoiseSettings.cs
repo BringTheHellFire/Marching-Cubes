@@ -5,6 +5,9 @@ using UnityEngine;
 [System.Serializable]
 public class NoiseSettings
 {
+    [Header("Compute Shader")]
+    public ComputeShader densityShader;
+
     [Header("General Settings")]
     [Tooltip("The seed of the generation.")]
     public int seed;

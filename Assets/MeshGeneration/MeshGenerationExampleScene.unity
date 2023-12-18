@@ -206,6 +206,51 @@ PrefabInstance:
       propertyPath: densityGenerator
       value: 
       objectReference: {fileID: 1858245270}
+    - target: {fileID: 7953679732989805014, guid: d303bf5a25fb3874d9878ede57736666,
+        type: 3}
+      propertyPath: entrances.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7953679732989805014, guid: d303bf5a25fb3874d9878ede57736666,
+        type: 3}
+      propertyPath: entrances.Array.data[0].x
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 7953679732989805014, guid: d303bf5a25fb3874d9878ede57736666,
+        type: 3}
+      propertyPath: entrances.Array.data[0].y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7953679732989805014, guid: d303bf5a25fb3874d9878ede57736666,
+        type: 3}
+      propertyPath: entrances.Array.data[0].z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7953679732989805014, guid: d303bf5a25fb3874d9878ede57736666,
+        type: 3}
+      propertyPath: entrances.Array.data[0].entranceSize
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 7953679732989805014, guid: d303bf5a25fb3874d9878ede57736666,
+        type: 3}
+      propertyPath: entrances.Array.data[0].entranceDepth
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 7953679732989805014, guid: d303bf5a25fb3874d9878ede57736666,
+        type: 3}
+      propertyPath: entrances.Array.data[0].entrancePosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7953679732989805014, guid: d303bf5a25fb3874d9878ede57736666,
+        type: 3}
+      propertyPath: entrances.Array.data[0].entrancePosition.y
+      value: -3
+      objectReference: {fileID: 0}
+    - target: {fileID: 7953679732989805014, guid: d303bf5a25fb3874d9878ede57736666,
+        type: 3}
+      propertyPath: entrances.Array.data[0].entrancePosition.z
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -435,16 +480,6 @@ PrefabInstance:
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3001151343988372186, guid: c82b648dfaafcfa4cafc3b3e29d44b69,
-        type: 3}
-      propertyPath: cavenDensityShader
-      value: 
-      objectReference: {fileID: 7200000, guid: f0fcce48666b3c048802bf75fbe0d7f8, type: 3}
-    - target: {fileID: 3001151343988372186, guid: c82b648dfaafcfa4cafc3b3e29d44b69,
-        type: 3}
-      propertyPath: noiseSettings.floorOffset
-      value: 1.21
       objectReference: {fileID: 0}
     - target: {fileID: 8381812077345921153, guid: c82b648dfaafcfa4cafc3b3e29d44b69,
         type: 3}

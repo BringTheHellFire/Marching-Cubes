@@ -5,10 +5,6 @@ public abstract class DensityGenerator : MonoBehaviour {
 
     const int threadGroupSize = 8;
 
-    [Header("Density Calculator")]
-    public ComputeShader densityShader;
-    public ComputeShader caveDensityShader;
-
     protected List<ComputeBuffer> buffersToRelease;
 
     void OnValidate() {
@@ -17,26 +13,13 @@ public abstract class DensityGenerator : MonoBehaviour {
         }
     }
 
-    public virtual ComputeBuffer Generate(ComputeBuffer pointsBuffer, int numPointsPerAxis, float boundsSize, Vector3 worldBounds, Vector3 centre, Vector3 offset, float spacing, float isoLevel)
+    public virtual ComputeBuffer Generate(NoiseSettings noiseSettings, ComputeBuffer pointsBuffer, int numPointsPerAxis, float boundsSize, Vector3 worldBounds, Vector3 centre, Vector3 offset, float spacing, float isoLevel)
     {
         int numThreadsPerAxis = GetNumberOfThreadsPerAxis(numPointsPerAxis);
 
-        SetShaderParameters(densityShader, pointsBuffer, numPointsPerAxis, boundsSize, worldBounds, centre, offset, spacing, isoLevel);
+        SetShaderParameters(noiseSettings.densityShader, pointsBuffer, numPointsPerAxis, boundsSize, worldBounds, centre, offset, spacing, isoLevel);
 
-        densityShader.Dispatch(0, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
-
-        ReleaseBuffers();
-
-        return pointsBuffer;
-    }
-
-    public virtual ComputeBuffer GenerateCaves(ComputeBuffer pointsBuffer, int numPointsPerAxis, float boundsSize, Vector3 worldBounds, Vector3 centre, Vector3 offset, float spacing, float isoLevel)
-    {
-        int numThreadsPerAxis = GetNumberOfThreadsPerAxis(numPointsPerAxis);
-
-        SetShaderParameters(caveDensityShader, pointsBuffer, numPointsPerAxis, boundsSize, worldBounds, centre, offset, spacing, isoLevel);
-
-        caveDensityShader.Dispatch(0, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
+        noiseSettings.densityShader.Dispatch(0, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
 
         ReleaseBuffers();
 
